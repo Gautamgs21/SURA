@@ -1,1 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>SURA · Spectrum Usage & Revenue Assessment</title>
+  <style>
+    /* ---------- design tokens ---------- */
+    :root {
+      --ink: #182233;
+      --ink-soft: #4b5768;
+      --paper: #ECEEEA;
+      --paper-raised: #F7F8F5;
+      --line: #CBD0C7;
+      --line-soft: #DDE0D9;
+      --brass: #9C7327;
+      --brass-soft: #EFE3C8;
+      --teal: #2C6357;
+      --teal-soft: #DEEAE5;
+      --red: #9C3B31;
+      --red-soft: #F3DEDA;
+      --green: #2E7D32;
+      --font-sans: "Aptos Display", -apple-system, "Segoe UI", sans-serif;
+      --font-serif: "Aptos Display", -apple-system, "Segoe UI", sans-serif;
+      --radius: 4px;
+      --shadow-card: 0 1px 3px rgba(0,0,0,0.03);
+      --transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      box-sizing: border-box;
+    }
 
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      width: 100%;
+      overflow-x: hidden;
+    }
+
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      transition: var(--transition);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* ---------- loading screen ---------- */
+    #loadingScreen {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: var(--paper);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      will-change: opacity, transform;
+    }
+
+    #loadingScreen.hidden {
+      opacity: 0;
+      transform: scale(1.15);
+      pointer-events: none;
+    }
+
+    /* Logo covers ~30% of the smaller viewport dimension */
+    #loadingScreen .logo-wrap {
+      width: 30vmin;
+      height: 30vmin;
+      max-width: 30vw;
+      max-height: 30vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: logoPulse 1.8s ease-in-out infinite;
+    }
+
+    #loadingScreen .logo-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    @keyframes logoPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.06); }
+    }
+
+    #loadingScreen .loading-bar {
+      margin-top: 28px;
+      width: 30vmin;
+      max-width: 30vw;
+      height: 3px;
+      background: var(--line-soft);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    #loadingScreen .loading-bar span {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: var(--brass);
+      border-radius: 3px;
+      animation: loadProgress 1.4s ease-in-out forwards;
+    }
+
+    @keyframes loadProgress {
+      0% { width: 0%; }
+      60% { width: 70%; }
+      100% { width: 100%; }
+    }
+
+    #loadingScreen .loading-label {
+      margin-top: 12px;
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      font-weight: 500;
+      opacity: 0.7;
+    }
+
+    /* ---------- main content ---------- */
+    #app {
+      opacity: 0;
+      transition: opacity 0.6s ease 0.15s;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #app.visible { opacity: 1; }
+
+    /* ---------- wrap ---------- */
+    .wrap {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 28px 32px 70px;
+      width: 100%;
+      flex: 1;
+    }
+
+    @media (max-width: 1200px) { .wrap { padding: 24px 22px 60px; } }
+    @media (max-width: 760px) { .wrap { padding: 16px 14px 50px; } }
+
+    /* ---------- masthead ---------- */
+    .masthead {
+      border-bottom: 2px solid var(--ink);
+      padding-bottom: 18px;
+      margin-bottom: 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .masthead .brand h1 {
+      font-family: var(--font-serif);
+      font-weight: 700;
+      font-size: 36px;
+      margin: 0 0 4px;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+    }
+
+    .masthead .brand p {
+      margin: 0;
+      font-size: 15px;
+      color: var(--ink-soft);
+      font-weight: 400;
+      letter-spacing: 0.01em;
+    }
+
+    .masthead .brand .eyebrow {
+      font-family: var(--font-sans);
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      color: var(--brass);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+
+    /* Logo pinned to top-right of the page */
+    .masthead .logo-badge {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .masthead .logo-badge img {
+      width: 72px;
+      height: 72px;
+      object-fit: contain;
+      display: block;
+    }
+
+    .masthead .logo-badge .asof {
+      font-size: 12px;
+      color: var(--ink-soft);
+      text-align: right;
+      line-height: 1.4;
+    }
+
+    .masthead .logo-badge .asof b {
+      color: var(--ink);
+      font-weight: 600;
+      display: block;
+      font-size: 13px;
+    }
+
+    @media (max-width: 640px) {
+      .masthead .brand h1 { font-size: 26px; }
+      .masthead .brand p { font-size: 13px; }
+      .masthead .logo-badge img { width: 52px; height: 52px; }
+    }
+
+    /* ---------- cards grid ---------- */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 20px;
+      margin-top: 4px;
+    }
+
+    @media (max-width: 1000px) {
+      .cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 620px) {
+      .cards-grid { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      display: flex;
+      flex-direction: column;
+      background: var(--paper-raised);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 22px 20px 24px;
+      box-shadow: var(--shadow-card);
+      transition: var(--transition), transform 0.2s ease, box-shadow 0.2s ease;
+      text-decoration: none;
+      color: var(--ink);
+      position: relative;
+      overflow: hidden;
+      min-height: 170px;
+      cursor: pointer;
+    }
+
+    .card:hover {
+      border-color: var(--brass);
+      transform: translateY(-3px);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+    }
+
+    .card:active { transform: translateY(-1px); }
+
+    .card .card-num {
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      color: var(--brass);
+      background: var(--brass-soft);
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 20px;
+      align-self: flex-start;
+      margin-bottom: 14px;
+    }
+
+    .card h3 {
+      font-family: var(--font-serif);
+      font-size: 17px;
+      font-weight: 600;
+      margin: 0 0 8px;
+      line-height: 1.3;
+      color: var(--ink);
+    }
+
+    .card p {
+      font-size: 13px;
+      color: var(--ink-soft);
+      margin: 0;
+      line-height: 1.5;
+      flex: 1;
+    }
+
+    .card .card-arrow {
+      position: absolute;
+      bottom: 16px;
+      right: 18px;
+      font-size: 18px;
+      color: var(--line);
+      transition: var(--transition), transform 0.2s ease;
+      line-height: 1;
+    }
+
+    .card:hover .card-arrow {
+      color: var(--brass);
+      transform: translateX(3px);
+    }
+
+    .card .card-badge {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 10px;
+      background: var(--teal-soft);
+      color: var(--teal);
+    }
+
+    /* ---------- footer ---------- */
+    footer {
+      margin-top: 44px;
+      font-size: 11.5px;
+      color: var(--ink-soft);
+      text-align: center;
+      padding-top: 20px;
+      border-top: 1px solid var(--line-soft);
+    }
+
+    /* ---------- dark mode ---------- */
+    :root[data-theme="dark"] {
+      --ink: #E9ECE6;
+      --ink-soft: #AEB6A8;
+      --paper: #161B15;
+      --paper-raised: #1E241C;
+      --line: #333B30;
+      --line-soft: #2A3128;
+      --brass: #D4A94B;
+      --brass-soft: #332A16;
+      --teal: #7FBDA9;
+      --teal-soft: #1B2C26;
+      --red: #D98A7C;
+      --red-soft: #3A211D;
+      --green: #6FCF77;
+      --shadow-card: 0 1px 3px rgba(0,0,0,0.4);
+    }
+
+    :root[data-theme="light"] {
+      --ink: #182233;
+      --ink-soft: #4b5768;
+      --paper: #ECEEEA;
+      --paper-raised: #F7F8F5;
+      --line: #CBD0C7;
+      --line-soft: #DDE0D9;
+      --brass: #9C7327;
+      --brass-soft: #EFE3C8;
+      --teal: #2C6357;
+      --teal-soft: #DEEAE5;
+      --red: #9C3B31;
+      --red-soft: #F3DEDA;
+      --green: #2E7D32;
+      --shadow-card: 0 1px 3px rgba(0,0,0,0.03);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme]) {
+        --ink: #E9ECE6;
+        --ink-soft: #AEB6A8;
+        --paper: #161B15;
+        --paper-raised: #1E241C;
+        --line: #333B30;
+        --line-soft: #2A3128;
+        --brass: #D4A94B;
+        --brass-soft: #332A16;
+        --teal: #7FBDA9;
+        --teal-soft: #1B2C26;
+        --red: #D98A7C;
+        --red-soft: #3A211D;
+        --green: #6FCF77;
+        --shadow-card: 0 1px 3px rgba(0,0,0,0.4);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #loadingScreen,
+      #loadingScreen .logo-wrap,
+      #loadingScreen .loading-bar span,
+      #app,
+      .card {
+        animation: none !important;
+        transition: none !important;
+      }
+      #loadingScreen.hidden { opacity: 0; transform: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========== LOADING SCREEN ========== -->
+  <div id="loadingScreen" role="status" aria-label="Loading SURA">
+    <div class="logo-wrap">
+      <!-- YOUR LOGO — save the provided image as assets/sura-logo.png -->
+      <img src="assets/sura-logo.png" alt="SURA — Spectrum Usage & Revenue Assessment logo" loading="eager">
+    </div>
+    <div class="loading-bar"><span></span></div>
+    <div class="loading-label">Loading assessment modules…</div>
+  </div>
+
+  <!-- ========== MAIN APP ========== -->
+  <div id="app">
+
+    <div class="wrap">
+
+      <header class="masthead">
+        <div class="brand">
+          <div class="eyebrow">Spectrum Usage &amp; Revenue Assessment</div>
+          <h1>SURA</h1>
+          <p>Spectrum Usage &amp; Revenue Assessment — unified calculation suite</p>
+        </div>
+        <!-- Logo pinned to top-right -->
+        <div class="logo-badge">
+          <img src="assets/sura-logo.png" alt="SURA logo">
+          <div class="asof">
+            Assessment suite<br><b>v1.0</b>
+          </div>
+        </div>
+      </header>
+
+      <!-- ========== SEVEN CARDS ========== -->
+      <div class="cards-grid" id="cardsGrid">
+
+        <a class="card" href="pages/agr-suc.html" data-page="agr-suc">
+          <span class="card-num">01</span>
+          <h3>Calculation of AGR for SUC</h3>
+          <p>Compute Adjusted Gross Revenue for Spectrum Usage Charges with quarter-wise detail and statutory adjustments.</p>
+          <span class="card-arrow">→</span>
+        </a>
+
+        <a class="card" href="pages/spectrum-details.html" data-page="spectrum-details">
+          <span class="card-num">02</span>
+          <h3>Spectrum Details &amp; SUC Rate Calculation</h3>
+          <p>Enter spectrum holdings, applicable SUC rates, and derive the weighted rate for each technology and circle.</p>
+          <span class="card-arrow">→</span>
+        </a>
+
+        <a class="card" href="pages/presumptive-agr.html" data-page="presumptive-agr">
+          <span class="card-num">03</span>
+          <h3>Presumptive AGR &amp; Floor SUC Calculation</h3>
+          <p>Apply the presumptive AGR framework and compute the floor SUC liability for the financial year.</p>
+          <span class="card-arrow">→</span>
+        </a>
+
+        <a class="card" href="pages/payment-details.html" data-page="payment-details">
+          <span class="card-num">04</span>
+          <h3>Payment Details &amp; Revenue Share Due Calculation</h3>
+          <p>Record payments, reconcile against dues, and calculate the revenue share payable with interest adjustments.</p>
+          <span class="card-arrow">→</span>
+        </a>
+
+        <!-- 05 — linked to the provided interest calculator, renamed to interest-principal.html -->
+        <a class="card" href="pages/interest-principal.html" data-page="interest-principal">
+          <span class="card-num">05</span>
+          <h3>Calculation of Interest on Principal</h3>
+          <p>Interest on principal with FIFO allocation, compounding, rate schedules, moratorium handling, and export.</p>
+          <span class="card-badge">Linked</span>
+          <span class="card-arrow">→</span>
+        </a>
+
+        <a class="card" href="pages/interest-penalty.html" data-page="interest-penalty">
+          <span class="card-num">06</span>
+          <h3>Calculation of Interest on Penalty</h3>
+          <p>Compute interest on penalty amounts with the same statutory engine, rate changes, and payment waterfall.</p>
+          <span class="card-arrow">→</span>
+        </a>
+
+        <a class="card" href="pages/summary.html" data-page="summary">
+          <span class="card-num">07</span>
+          <h3>Summary</h3>
+          <p>Consolidated view of AGR, SUC, payments, interest on principal and penalty — with print and export options.</p>
+          <span class="card-arrow">→</span>
+        </a>
+
+      </div>
+
+      <footer>
+        SURA — Spectrum Usage &amp; Revenue Assessment · All calculations use full precision internally.
+      </footer>
+
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      'use strict';
+
+      /* ============================================================
+         THEME INIT (light/dark, persisted)
+         ============================================================ */
+      (function themeInit() {
+        var root = document.documentElement;
+        var saved = null;
+        try { saved = localStorage.getItem('sura_theme'); } catch (e) {}
+
+        var startTheme;
+        if (saved === 'dark' || saved === 'light') {
+          startTheme = saved;
+        } else {
+          startTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        root.setAttribute('data-theme', startTheme);
+
+        var mq = window.matchMedia('(prefers-color-scheme: dark)');
+        var mqListener = function(e) {
+          var hasSaved = null;
+          try { hasSaved = localStorage.getItem('sura_theme'); } catch (err) {}
+          if (!hasSaved) {
+            root.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+          }
+        };
+        if (mq.addEventListener) mq.addEventListener('change', mqListener);
+        else if (mq.addListener) mq.addListener(mqListener);
+      })();
+
+      /* ============================================================
+         LOADING SCREEN → FADE OUT → SHOW APP
+         ============================================================ */
+      (function loadingSequence() {
+        var loadingScreen = document.getElementById('loadingScreen');
+        var app = document.getElementById('app');
+
+        var MIN_LOAD_TIME = 1400;
+
+        function revealApp() {
+          loadingScreen.classList.add('hidden');
+          app.classList.add('visible');
+
+          setTimeout(function() {
+            if (loadingScreen.parentNode) {
+              loadingScreen.parentNode.removeChild(loadingScreen);
+            }
+          }, 700);
+        }
+
+        if (document.readyState === 'complete') {
+          setTimeout(revealApp, MIN_LOAD_TIME);
+        } else {
+          window.addEventListener('load', function() {
+            setTimeout(revealApp, MIN_LOAD_TIME);
+          });
+          setTimeout(function() {
+            if (!app.classList.contains('visible')) {
+              revealApp();
+            }
+          }, 6000);
+        }
+      })();
+
+    })();
+  </script>
+
+</body>
+</html>
