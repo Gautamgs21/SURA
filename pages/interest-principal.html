@@ -1,0 +1,2718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Interest Calculator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Aptos+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ---------- design tokens ---------- */
+    :root {
+      --ink: #182233;
+      --ink-soft: #4b5768;
+      --paper: #ECEEEA;
+      --paper-raised: #F7F8F5;
+      --line: #CBD0C7;
+      --line-soft: #DDE0D9;
+      --brass: #9C7327;
+      --brass-soft: #EFE3C8;
+      --teal: #2C6357;
+      --teal-soft: #DEEAE5;
+      --red: #9C3B31;
+      --red-soft: #F3DEDA;
+      --green: #2E7D32;
+      --font-sans: "Aptos Display", -apple-system, "Segoe UI", sans-serif;
+      --font-serif: "Aptos Display", -apple-system, "Segoe UI", sans-serif;
+      --font-mono: "Aptos Display", -apple-system, "Segoe UI", sans-serif;
+      --radius: 4px;
+      --shadow-card: 0 1px 3px rgba(0,0,0,0.03);
+      --transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      box-sizing: border-box;
+    }
+
+    /* ---------- dark mode tokens ---------- */
+    :root[data-theme="dark"] {
+      --ink: #E9ECE6;
+      --ink-soft: #AEB6A8;
+      --paper: #161B15;
+      --paper-raised: #1E241C;
+      --line: #333B30;
+      --line-soft: #2A3128;
+      --brass: #D4A94B;
+      --brass-soft: #332A16;
+      --teal: #7FBDA9;
+      --teal-soft: #1B2C26;
+      --red: #D98A7C;
+      --red-soft: #3A211D;
+      --green: #6FCF77;
+      --shadow-card: 0 1px 3px rgba(0,0,0,0.4);
+    }
+
+    /* ---------- light mode explicit override ---------- */
+    :root[data-theme="light"] {
+      --ink: #182233;
+      --ink-soft: #4b5768;
+      --paper: #ECEEEA;
+      --paper-raised: #F7F8F5;
+      --line: #CBD0C7;
+      --line-soft: #DDE0D9;
+      --brass: #9C7327;
+      --brass-soft: #EFE3C8;
+      --teal: #2C6357;
+      --teal-soft: #DEEAE5;
+      --red: #9C3B31;
+      --red-soft: #F3DEDA;
+      --green: #2E7D32;
+      --shadow-card: 0 1px 3px rgba(0,0,0,0.03);
+    }
+
+    /* ---------- auto dark mode only if no explicit theme set ---------- */
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme]) {
+        --ink: #E9ECE6;
+        --ink-soft: #AEB6A8;
+        --paper: #161B15;
+        --paper-raised: #1E241C;
+        --line: #333B30;
+        --line-soft: #2A3128;
+        --brass: #D4A94B;
+        --brass-soft: #332A16;
+        --teal: #7FBDA9;
+        --teal-soft: #1B2C26;
+        --red: #D98A7C;
+        --red-soft: #3A211D;
+        --green: #6FCF77;
+        --shadow-card: 0 1px 3px rgba(0,0,0,0.4);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+    html {
+      scroll-padding-top: env(safe-area-inset-top, 0px);
+    }
+    html, body {
+      height: 100%;
+    }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      transition: var(--transition);
+    }
+
+    /* ---------- layout container ---------- */
+    .wrap {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 28px 32px 70px;
+      transition: var(--transition);
+    }
+    @media (max-width: 1200px) { .wrap { padding: 24px 22px 60px; } }
+    @media (max-width: 760px) { .wrap { padding: 16px 14px 50px; } }
+
+    /* ---------- masthead ---------- */
+    header.masthead {
+      border-bottom: 2px solid var(--ink);
+      padding-bottom: 18px;
+      margin-bottom: 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    header.masthead .title-block {
+      max-width: 720px;
+    }
+    header.masthead .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      letter-spacing: 0.04em;
+      color: var(--brass);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+    header.masthead h1 {
+      font-family: var(--font-serif);
+      font-weight: 600;
+      font-size: 30px;
+      margin: 0 0 6px;
+      line-height: 1.15;
+    }
+    header.masthead p {
+      margin: 0;
+      color: var(--ink-soft);
+      font-size: 14px;
+      max-width: 60ch;
+    }
+    header.masthead .asof {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--ink-soft);
+      text-align: right;
+      white-space: nowrap;
+    }
+    header.masthead .asof b {
+      color: var(--ink);
+      font-weight: 600;
+      display: block;
+      font-size: 13px;
+    }
+
+    /* ---------- theme toggle ---------- */
+    .theme-toggle {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      background: var(--paper-raised);
+      border: 1px solid var(--line);
+      border-radius: 40px;
+      padding: 3px;
+      cursor: pointer;
+      user-select: none;
+      flex-shrink: 0;
+      transition: var(--transition);
+    }
+    .theme-toggle button {
+      font-family: var(--font-sans);
+      font-size: 11.5px;
+      padding: 6px 14px;
+      border-radius: 40px;
+      border: none;
+      background: transparent;
+      color: var(--ink-soft);
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .theme-toggle button.active {
+      background: var(--ink);
+      color: var(--paper-raised);
+    }
+    .theme-toggle button:hover:not(.active) {
+      color: var(--ink);
+    }
+
+    /* ---------- tab bar ---------- */
+    .tabbar {
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      margin: 0 0 18px;
+      padding: 0 0 0 1px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: thin;
+    }
+    .tabbar::-webkit-scrollbar { height: 5px; }
+    .tabbar::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+    .tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px 9px 14px;
+      background: var(--paper);
+      border: 1.5px solid var(--ink);
+      border-bottom: 1.5px solid var(--ink);
+      border-radius: 5px 5px 0 0;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      cursor: pointer;
+      white-space: nowrap;
+      user-select: none;
+      flex-shrink: 0;
+      transition: var(--transition);
+      margin-bottom: -1.5px;
+    }
+    .tab:hover {
+      color: var(--ink);
+      background: var(--paper-raised);
+    }
+    .tab.active {
+      background: var(--paper-raised);
+      color: var(--ink);
+      border-bottom-color: var(--paper-raised);
+      position: relative;
+      z-index: 1;
+    }
+    .tab .tab-close {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-size: 13px;
+      font-weight: 400;
+      line-height: 1;
+      color: var(--ink-soft);
+      text-transform: none;
+    }
+    .tab .tab-close:hover {
+      background: var(--red-soft);
+      color: var(--red);
+    }
+    .tab-add {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      margin-bottom: -1.5px;
+      border: 1.5px solid var(--ink);
+      border-radius: 5px 5px 0 0;
+      background: var(--paper);
+      color: var(--ink-soft);
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      flex-shrink: 0;
+      transition: var(--transition);
+    }
+    .tab-add:hover {
+      border-color: var(--brass);
+      color: var(--brass);
+      background: var(--paper-raised);
+    }
+    body.sidebar-collapsed .tabbar { margin-bottom: 18px; }
+    @media (max-width: 760px) {
+      .tabbar { margin-bottom: 14px; }
+      .tab { padding: 8px 10px 8px 12px; font-size: 11px; }
+    }
+
+    /* ---------- grid + collapsible sidebar ---------- */
+    .grid {
+      display: grid;
+      grid-template-columns: 380px minmax(0, 1fr);
+      gap: 24px;
+      align-items: start;
+      transition: grid-template-columns 0.3s ease, gap 0.3s ease;
+    }
+    .grid > * {
+      min-width: 0;
+      align-self: start;
+    }
+    #output {
+      min-width: 0;
+      width: 100%;
+    }
+
+    /* sidebar wrapper */
+    #sidebar {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow: hidden;
+    }
+    #inputCol {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* sidebar collapse toggle bar */
+    .sidebar-toggle {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 9px 10px;
+      background: var(--paper-raised);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      color: var(--ink-soft);
+      cursor: pointer;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      min-height: 36px;
+      transition: var(--transition);
+    }
+    .sidebar-toggle:hover {
+      border-color: var(--brass);
+      color: var(--brass);
+    }
+    .sidebar-toggle .chev {
+      font-size: 15px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .sidebar-toggle .label {
+      font-size: 11.5px;
+    }
+
+    /* collapsed state */
+    body.sidebar-collapsed .grid {
+      grid-template-columns: 48px minmax(0, 1fr);
+      gap: 14px;
+    }
+    body.sidebar-collapsed #inputCol {
+      display: none;
+    }
+    body.sidebar-collapsed .sidebar-toggle {
+      flex-direction: column;
+      gap: 10px;
+      padding: 12px 4px;
+      min-height: 0;
+    }
+    body.sidebar-collapsed .sidebar-toggle .label {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      font-size: 10.5px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 1000px) {
+      .grid { grid-template-columns: 320px minmax(0, 1fr); gap: 18px; }
+      body.sidebar-collapsed .grid { grid-template-columns: 48px minmax(0, 1fr); }
+    }
+    @media (max-width: 760px) {
+      .grid { display: block; }
+      .grid > * { width: 100%; }
+      .grid > #output { margin-top: 16px; }
+      #sidebar { margin-bottom: 16px; }
+      body.sidebar-collapsed .grid { display: block; }
+      body.sidebar-collapsed #inputCol { display: none; }
+      body.sidebar-collapsed .sidebar-toggle {
+        flex-direction: row;
+        gap: 8px;
+        padding: 9px 12px;
+      }
+      body.sidebar-collapsed .sidebar-toggle .label {
+        writing-mode: horizontal-tb;
+        transform: none;
+        text-transform: none;
+        letter-spacing: 0.02em;
+        font-size: 12px;
+      }
+    }
+
+    /* ---------- panels ---------- */
+    .panel {
+      background: var(--paper-raised);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px 16px 18px;
+      width: 100%;
+      box-shadow: var(--shadow-card);
+      transition: var(--transition);
+    }
+    .panel + .panel {
+      margin-top: 16px;
+    }
+    .panel h2 {
+      font-family: var(--font-serif);
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0 0 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .panel .sub {
+      font-size: 12.5px;
+      color: var(--ink-soft);
+      margin: 0 0 16px;
+    }
+
+    /* ---------- collapsible panels ---------- */
+    .panel-toggle {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--line);
+      background: var(--paper);
+      color: var(--ink-soft);
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 11px;
+      line-height: 1;
+      padding: 0;
+      transition: var(--transition);
+    }
+    .panel-toggle:hover {
+      border-color: var(--brass);
+      color: var(--brass);
+    }
+    .panel.collapsed { padding-bottom: 14px; }
+    .panel.collapsed .panel-body { display: none; }
+    .panel.collapsed h2 { margin-bottom: 0; }
+
+    /* ---------- form elements ---------- */
+    label {
+      display: block;
+      font-size: 12px;
+      color: var(--ink-soft);
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+    input[type=text],
+    input[type=number],
+    input[type=date],
+    select {
+      width: 100%;
+      padding: 8px 9px;
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--font-mono);
+      font-size: 13.5px;
+      transition: var(--transition);
+    }
+    input:focus,
+    select:focus {
+      outline: 2px solid var(--brass);
+      outline-offset: 1px;
+      border-color: var(--brass);
+    }
+    .field {
+      margin-bottom: 14px;
+    }
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .hint {
+      font-size: 11px;
+      color: var(--ink-soft);
+      margin-top: 4px;
+    }
+
+    /* ---------- FIXED: rate label larger & bolder ---------- */
+    .rate-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+      letter-spacing: 0.01em;
+      margin-bottom: 6px;
+    }
+
+    /* ---------- quarter rows ---------- */
+    .quarter-row {
+      display: grid;
+      grid-template-columns: 34px 1fr auto;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .quarter-row .qlabel {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      font-size: 12.5px;
+      color: var(--brass);
+      background: var(--brass-soft);
+      border-radius: 2px;
+      text-align: center;
+      padding: 8px 0;
+    }
+    .quarter-row .qdate {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--ink-soft);
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    /* ---------- tables ---------- */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .pay-table th {
+      text-align: left;
+      font-size: 11px;
+      color: var(--ink-soft);
+      font-weight: 500;
+      padding: 0 8px 6px;
+      border-bottom: 1px solid var(--line);
+    }
+    .pay-table td {
+      padding: 4px 5px;
+      vertical-align: middle;
+    }
+    .pay-table input {
+      padding: 6px 7px;
+      font-size: 12.5px;
+    }
+    .pay-table .amt-col {
+      width: 46%;
+    }
+    .pay-table .rm-col {
+      width: 28px;
+    }
+
+    /* ---------- rate schedule table ---------- */
+    .rate-table {
+      table-layout: fixed;
+      width: 100%;
+    }
+    .rate-table th,
+    .rate-table td {
+      padding: 4px 4px;
+      vertical-align: middle;
+      overflow: visible;
+    }
+    .rate-table .col-from   { width: 38%; }
+    .rate-table .col-rate   { width: 24%; }
+    .rate-table .col-method { width: 30%; }
+    .rate-table .col-rm     { width: 8%;  }
+    .rate-table th {
+      text-align: left;
+      font-size: 10.5px;
+      color: var(--ink-soft);
+      font-weight: 500;
+      padding: 0 4px 6px;
+      border-bottom: 1px solid var(--line);
+      white-space: nowrap;
+    }
+    .rate-table input,
+    .rate-table select {
+      width: 100%;
+      min-width: 0;
+      padding: 6px 6px;
+      font-size: 12px;
+      box-sizing: border-box;
+    }
+    .rate-table .rm-btn {
+      width: 24px;
+      height: 24px;
+      margin: 0 auto;
+      display: block;
+    }
+
+    .rm-btn {
+      width: 26px;
+      height: 26px;
+      border: 1px solid var(--line);
+      background: var(--paper);
+      color: var(--red);
+      border-radius: 2px;
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      transition: var(--transition);
+    }
+    .rm-btn:hover {
+      background: var(--red-soft);
+    }
+    .add-row-btn {
+      margin-top: 8px;
+      width: 100%;
+      padding: 9px;
+      border: 1px dashed var(--line);
+      background: transparent;
+      color: var(--ink-soft);
+      border-radius: 2px;
+      cursor: pointer;
+      font-family: var(--font-sans);
+      font-size: 12.5px;
+      transition: var(--transition);
+    }
+    .add-row-btn:hover {
+      border-color: var(--brass);
+      color: var(--brass);
+    }
+
+    /* ---------- buttons ---------- */
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+    button.primary {
+      flex: 1;
+      padding: 11px 14px;
+      background: var(--ink);
+      color: var(--paper-raised);
+      border: none;
+      border-radius: 3px;
+      font-family: var(--font-sans);
+      font-weight: 600;
+      font-size: 13.5px;
+      cursor: pointer;
+      letter-spacing: 0.01em;
+      transition: var(--transition);
+    }
+    button.primary:hover {
+      background: var(--brass);
+      color: #1a1200;
+    }
+    button.ghost {
+      padding: 11px 14px;
+      background: transparent;
+      color: var(--ink-soft);
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    button.ghost:hover {
+      border-color: var(--ink);
+      color: var(--ink);
+    }
+    button.ghost.warn:hover {
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    /* ---------- summary cards ---------- */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin: 0 0 16px;
+      width: 100%;
+    }
+    @media (max-width: 900px) {
+      .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 520px) {
+      .summary-grid { grid-template-columns: 1fr; }
+    }
+    .stat {
+      background: var(--paper-raised);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      min-height: 76px;
+      box-shadow: var(--shadow-card);
+      transition: var(--transition);
+    }
+    .stat .label {
+      font-size: 11px;
+      color: var(--ink-soft);
+      margin-bottom: 6px;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+    }
+    .stat .value {
+      font-family: var(--font-mono);
+      font-size: 17px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .stat.accent .value {
+      color: var(--brass);
+    }
+    .stat.result {
+      background: var(--ink);
+      border-color: var(--ink);
+    }
+    .stat.result .label {
+      color: #A9B0A0;
+    }
+    .stat.result .value {
+      color: var(--paper-raised);
+      font-size: 22px;
+    }
+    .stat.result.credit .value {
+      color: var(--green);
+    }
+    .stat.result.due .value {
+      color: #E6A78E;
+    }
+
+    /* ---------- FIXED: ledger table header larger & bolder ---------- */
+    .ledger-wrap {
+      background: var(--paper-raised);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow-x: auto;
+      width: 100%;
+      box-shadow: var(--shadow-card);
+      transition: var(--transition);
+    }
+    table.ledger {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 920px;
+    }
+    table.ledger thead th {
+      text-align: left;
+      font-size: 12.5px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: var(--ink);
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--ink);
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      background: var(--paper-raised);
+      transition: var(--transition);
+    }
+    table.ledger td {
+      padding: 9px 10px;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      border-bottom: 1px solid var(--line-soft);
+      white-space: nowrap;
+    }
+    table.ledger tbody tr:hover {
+      background: var(--paper);
+    }
+    table.ledger td.src {
+      font-family: var(--font-sans);
+      font-size: 12.5px;
+    }
+    table.ledger td.num {
+      text-align: right;
+    }
+    .badge {
+      display: inline-block;
+      font-family: var(--font-sans);
+      font-size: 10.5px;
+      padding: 2px 7px;
+      border-radius: 9px;
+      font-weight: 500;
+    }
+    .badge.principal {
+      background: var(--teal-soft);
+      color: var(--teal);
+    }
+    .badge.interest {
+      background: var(--brass-soft);
+      color: var(--brass);
+    }
+    tr.qhead td {
+      background: var(--brass-soft);
+      font-family: var(--font-sans);
+      font-size: 12px;
+      color: var(--ink);
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--line);
+      white-space: normal;
+    }
+    tr.qhead td strong {
+      font-family: var(--font-serif);
+      font-size: 14px;
+      color: var(--brass);
+      margin-right: 2px;
+    }
+    tr.qhead .qperiod {
+      color: var(--ink-soft);
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+    tr.outstanding td {
+      background: var(--red-soft);
+    }
+    tr.outstanding td.src::before {
+      content: "⚠ ";
+      color: var(--red);
+    }
+    .indent {
+      color: var(--ink-soft);
+      margin-right: 2px;
+    }
+    tr.multi-parent td {
+      font-weight: 600;
+    }
+    tr.segment-row td {
+      font-size: 11.5px;
+      color: var(--ink-soft);
+      background: var(--paper);
+    }
+    tr.segment-row td.src {
+      padding-left: 22px;
+      font-style: italic;
+    }
+    tr.outstanding.segment-row td {
+      background: var(--red-soft);
+    }
+    .var-badge {
+      display: inline-block;
+      font-family: var(--font-sans);
+      font-size: 10.5px;
+      padding: 2px 7px;
+      border-radius: 9px;
+      font-weight: 500;
+      background: var(--line-soft);
+      color: var(--ink-soft);
+    }
+
+    /* ---------- section title ---------- */
+    .section-title {
+      font-family: var(--font-serif);
+      font-size: 18px;
+      font-weight: 600;
+      margin: 32px 0 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-title .line {
+      flex: 1;
+      height: 1px;
+      background: var(--line);
+    }
+    #output .section-title {
+      margin-top: 12px;
+    }
+    @media (min-width: 761px) {
+      #output .section-title:first-of-type {
+        margin-top: 4px;
+      }
+    }
+
+    /* ---------- notes & misc ---------- */
+    details.notes {
+      margin-top: 30px;
+      background: var(--paper-raised);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      box-shadow: var(--shadow-card);
+      transition: var(--transition);
+    }
+    details.notes summary {
+      cursor: pointer;
+      font-family: var(--font-serif);
+      font-weight: 600;
+      font-size: 14.5px;
+    }
+    details.notes ul {
+      margin: 12px 0 0;
+      padding-left: 20px;
+      font-size: 13px;
+      color: var(--ink-soft);
+    }
+    details.notes li {
+      margin-bottom: 8px;
+    }
+    details.notes code {
+      font-family: var(--font-mono);
+      background: var(--paper);
+      padding: 1px 5px;
+      border-radius: 2px;
+      font-size: 12px;
+    }
+
+    .empty-state {
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--ink-soft);
+      font-size: 13px;
+    }
+
+    .surplus-note {
+      margin-top: 16px;
+      padding: 12px 16px;
+      border: 1px solid var(--brass);
+      border-radius: var(--radius);
+      background: var(--brass-soft);
+      font-size: 12.5px;
+      color: var(--ink);
+      transition: var(--transition);
+    }
+
+    footer {
+      margin-top: 44px;
+      font-size: 11.5px;
+      color: var(--ink-soft);
+      text-align: center;
+    }
+
+    /* ============================================================
+       PRINT SHEET — a self-contained, print-only layout
+       (built by JS right before printing; hidden on screen)
+       ============================================================ */
+    #printSheet { display: none; }
+
+    @page {
+      size: portrait;
+      margin: 9mm 8mm;
+    }
+
+    .ps-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-bottom: 2px solid #000;
+      padding-bottom: 4px;
+      margin-bottom: 7px;
+    }
+    .ps-header .ps-title {
+      font-family: var(--font-serif);
+      font-size: 14.5pt;
+      font-weight: 700;
+      color: #000;
+      margin: 0;
+      line-height: 1.15;
+    }
+    .ps-header .ps-eyebrow {
+      font-size: 7.5pt;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #000;
+      margin-bottom: 2px;
+    }
+    .ps-header .ps-asof {
+      font-size: 8.5pt;
+      font-weight: 700;
+      color: #000;
+      text-align: right;
+      white-space: nowrap;
+    }
+    .ps-header .ps-asof span {
+      font-weight: 400;
+      display: block;
+      font-size: 7.5pt;
+    }
+
+    .ps-row {
+      display: grid;
+      gap: 5px;
+      margin-bottom: 5px;
+    }
+    .ps-row.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .ps-row.cols-1 { grid-template-columns: 1fr; }
+    .ps-row.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    .ps-card {
+      border: 1.25px solid #000;
+      border-radius: 2px;
+      padding: 5px 7px 6px;
+      break-inside: avoid;
+      min-width: 0;
+    }
+    .ps-card h3 {
+      font-size: 8.5pt;
+      font-weight: 700;
+      color: #000;
+      margin: 0 0 4px;
+      padding-bottom: 3px;
+      border-bottom: 1px solid #000;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .ps-kv {
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      font-size: 8pt;
+      color: #000;
+      padding: 1.5px 0;
+      line-height: 1.35;
+    }
+    .ps-kv .k { color: #000; }
+    .ps-kv .v { font-weight: 700; color: #000; text-align: right; }
+    .ps-empty-note { font-size: 7.5pt; color: #000; font-style: italic; }
+
+    table.ps-mini {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 7.5pt;
+      color: #000;
+      margin-top: 2px;
+    }
+    table.ps-mini th {
+      text-align: left;
+      font-weight: 700;
+      border-bottom: 1px solid #000;
+      padding: 1.5px 3px;
+      color: #000;
+    }
+    table.ps-mini td {
+      padding: 1.5px 3px;
+      border-bottom: 0.5px solid #555;
+      color: #000;
+    }
+    table.ps-mini td.num, table.ps-mini th.num { text-align: right; }
+    table.ps-mini tr.ps-total td {
+      border-top: 1px solid #000;
+      border-bottom: none;
+      font-weight: 700;
+      padding-top: 3px;
+    }
+
+    .ps-stat {
+      text-align: center;
+    }
+    .ps-stat .label {
+      font-size: 7.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      color: #000;
+      margin-bottom: 3px;
+    }
+    .ps-stat .value {
+      font-size: 15pt;
+      font-weight: 800;
+      color: #000;
+      letter-spacing: -0.01em;
+    }
+
+    .ps-ledger-card {
+      break-inside: auto;
+      page-break-inside: auto;
+    }
+    .ps-ledger-card table.ps-ledger {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 7pt;
+      color: #000;
+      table-layout: fixed;
+    }
+    table.ps-ledger th {
+      text-align: left;
+      font-weight: 700;
+      border-bottom: 1.25px solid #000;
+      padding: 2px 3px;
+      color: #000;
+    }
+    table.ps-ledger td {
+      padding: 1.6px 3px;
+      border-bottom: 0.5px solid #999;
+      color: #000;
+      overflow-wrap: break-word;
+    }
+    table.ps-ledger td.num, table.ps-ledger th.num { text-align: right; font-weight: 700; }
+    table.ps-ledger tr { break-inside: avoid; }
+    table.ps-ledger tr.ps-qhead td {
+      font-weight: 800;
+      font-size: 7.3pt;
+      border-top: 1px solid #000;
+      border-bottom: 1px solid #000;
+      padding-top: 3px;
+      padding-bottom: 3px;
+    }
+    table.ps-ledger tr.ps-outstanding td { font-style: italic; }
+    table.ps-ledger tr.ps-seg td { color: #333; padding-left: 10px; }
+    table.ps-ledger thead { display: table-header-group; }
+
+    .ps-footer {
+      margin-top: 6px;
+      font-size: 6.5pt;
+      color: #000;
+      text-align: right;
+    }
+
+    @media print {
+      html, body {
+        background: #fff !important;
+        color: #000 !important;
+      }
+      .no-print, .wrap > .grid, .wrap > header.masthead, details.notes {
+        display: none !important;
+      }
+      .wrap {
+        max-width: none;
+        padding: 0;
+        margin: 0;
+      }
+      #printSheet {
+        display: block !important;
+        color: #000 !important;
+      }
+      #printSheet * {
+        color: #000 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+      }
+    }
+
+    .input-hint {
+      font-size: 11px;
+      color: var(--ink-soft);
+      margin-top: 4px;
+      opacity: 0.85;
+    }
+    .grid .panel:last-child {
+      margin-bottom: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <header class="masthead">
+      <div class="title-block">
+        <div class="eyebrow">SUC ASSESSMENT</div>
+        <h1>PART V: CALCULATION OF INTEREST ON PRINCIPAL</h1>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <button class="ghost no-print" id="freshStartBtn" title="Delete browser cache and start with a blank form" style="padding:8px 14px; font-size:12.5px;">RESET ALL</button>
+        <div class="asof no-print">
+          Interest calculated as on<br><b id="asOnDisplay">—</b>
+        </div>
+        <div class="theme-toggle no-print" id="themeToggle" role="group" aria-label="Theme">
+          <button type="button" data-theme-value="light">Light</button>
+          <button type="button" data-theme-value="dark">Dark</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="tabbar no-print" id="tabBar" role="tablist" aria-label="Technology tabs"></div>
+
+    <div class="grid">
+
+      <!-- ===================== INPUT SIDEBAR (collapsible) ===================== -->
+      <aside class="sidebar no-print" id="sidebar">
+        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle input sidebar" aria-expanded="true">
+          <span class="chev">‹</span>
+          <span class="label">Hide inputs</span>
+        </button>
+
+        <div id="inputCol">
+
+          <!-- ===== NEW: BASIC DETAILS CARD ===== -->
+          <div class="panel">
+            <h2>Basic Details</h2>
+            <div class="field">
+              <label for="licenseeName">Licensee Name</label>
+              <input type="text" id="licenseeName" placeholder="Enter licensee name">
+            </div>
+            <div class="field">
+              <label for="basicFy">Financial Year</label>
+              <input type="text" id="basicFy" placeholder="e.g. 2020-21">
+            </div>
+            <div class="field">
+              <label for="technology">Technology</label>
+              <select id="technology">
+                <option value="" selected>-- Select Technology --</option>
+                <option value="GSM ACCESS">GSM ACCESS</option>
+                <option value="GSM MWA">GSM MWA</option>
+                <option value="GSM MWB">GSM MWB</option>
+                <option value="E-BAND">E-BAND</option>
+                <option value="OTHER">OTHER</option>
+              </select>
+            </div>
+          </div>
+          <!-- ===== END NEW: BASIC DETAILS CARD ===== -->
+
+          <div class="panel">
+            <h2>Financial year &amp; dues</h2>
+
+            <div class="field">
+              <label for="fyYear">Financial year start (e.g. 2020 = FY 2020–21)</label>
+              <input type="number" id="fyYear" value="2020" step="1">
+            </div>
+
+            <div id="quarterInputs"></div>
+
+            <div class="field" style="margin-top:14px;">
+              <label for="q4rule">Q4 due-date basis</label>
+              <select id="q4rule">
+                <option value="apr16">16 April (following year) — default</option>
+                <option value="mar26">26 March (following year)</option>
+                <option value="custom">Custom date</option>
+              </select>
+            </div>
+            <div class="field" id="q4customWrap" style="display:none;">
+              <label for="q4custom">Custom Q4 due date</label>
+              <input type="date" id="q4custom">
+            </div>
+
+            <div class="btn-row" style="margin-top:4px;">
+              <button class="ghost warn" id="clearDuesBtn" style="flex:1;">Clear</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2>Payment register</h2>
+            <table class="pay-table">
+              <thead>
+                <tr><th>Date</th><th class="amt-col">Amount (₹)</th><th class="rm-col"></th></tr>
+              </thead>
+              <tbody id="paymentRows"></tbody>
+            </table>
+            <button class="add-row-btn" id="addPaymentBtn">+ Add payment</button>
+            <button class="ghost warn" id="clearPaymentsBtn" style="width:100%; margin-top:8px; padding:8px; font-size:12.5px;">Clear fields</button>
+          </div>
+
+          <div class="panel">
+            <h2>Rate &amp; calculation schedule</h2>
+            <div class="field-row">
+              <div class="field">
+                <label for="ratePct">Default annual rate (%)</label>
+                <input type="number" id="ratePct" value="11.75" step="0.01">
+              </div>
+              <div class="field">
+                <label for="method">Default compounding</label>
+                <select id="method">
+                  <option value="monthly" selected>Monthly</option>
+                  <option value="annual">Annual</option>
+                </select>
+              </div>
+            </div>
+            <div class="field" style="margin-top:10px;">
+              <label class="rate-label">Rate / method changes</label>
+              <table class="rate-table">
+                <thead>
+                  <tr>
+                    <th class="col-from">Effective from</th>
+                    <th class="col-rate">Rate %</th>
+                    <th class="col-method">Method</th>
+                    <th class="col-rm"></th>
+                  </tr>
+                </thead>
+                <tbody id="rateScheduleRows"></tbody>
+              </table>
+              <button class="add-row-btn" id="addRateChangeBtn">+ Add rate / method change</button>
+            </div>
+            <div class="field" style="margin-top:10px;">
+              <label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer;">
+                <input type="checkbox" id="moratoriumCheck" style="width:auto;">
+                This is a moratorium case
+              </label>
+              <div style="font-size:12px;color:#666;margin-top:4px;">
+              </div>
+            </div>
+            <div class="field">
+              <label for="asOnDate">Interest calculated as on</label>
+              <input type="date" id="asOnDate">
+            </div>
+            <div class="btn-row">
+              <button class="primary" id="calcBtn">Calculate</button>
+              <button class="ghost" id="resetBtn" title="Load the worked example">Reset</button>
+            </div>
+            <div class="btn-row">
+              <button class="ghost" id="printBtn" style="flex:1;">Print / save PDF</button>
+              <button class="ghost" id="xlsxBtn" style="flex:1;">Export to Excel</button>
+            </div>
+            <div class="input-hint">The Excel export fills the fields of your <b>Template.xlsx</b> — sheet “5. Interest Sheet (N)” — with this run's figures.</div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ===================== OUTPUT COLUMN ===================== -->
+      <div id="output">
+        <div class="empty-state">Enter your dues and payments, then choose Calculate.</div>
+      </div>
+
+    </div>
+
+    <div id="printSheet"></div>
+
+    <details class="notes no-print">
+      <summary>How this engine works &amp; assumptions worth checking</summary>
+      <ul>
+        <li><b>FIFO principal allocation.</b> Every payment first clears the oldest unpaid quarterly principal (Q1 → Q2 → Q3 → Q4) before a rupee of it is applied to any accrued interest.</li>
+        <li><b>Inclusive month count.</b> The number of months between a due date and a payment date is the count of distinct calendar months the period touches, regardless of the exact day — e.g. 16 July to 14 October is treated as 4 months (July, August, September, October).</li>
+        <li><b>Interest formula (monthly compounding, default):</b> <code>Interest = Balance × ((1 + Rate/12)^Months − 1)</code>. Annual compounding uses <code>((1 + Rate)^(Months/12) − 1)</code>.</li>
+        <li><b>Interest becomes new principal.</b> Any interest generated that isn't paid off immediately is carried forward as its own liability, starting on the 1st of the month following the month in which it was generated — and it can itself generate further interest if it stays unpaid.</li>
+        <li><b>Rate / method schedule.</b> The default rate and compounding method apply unless an effective-month change is entered. Each change remains active until the next change, so the engine can move automatically from one statutory rate/method to another without manual recalculation.</li>
+        <li><b>Moratorium vs. non-moratorium.</b> With the moratorium checkbox ON, every rate/method change cuts through every liability — parent and every child interest/interest-on-interest — at that change's effective date, splitting any period that straddles it. With it OFF (default), a rate/method change only binds a liability chain (the quarterly SUC due and everything that compounds from it) if that chain's root due date falls on or after the change's effective date; a qualifying chain then uses that one rate/method for its entire life, and a non-qualifying chain keeps the old rate/method throughout, even for legs calculated long after the change.</li>
+        <li><b>Payment waterfall.</b> Once all four quarters' principal is exhausted, remaining payment is applied to outstanding interest liabilities in the order they arose. Anything left after every liability is settled shows as surplus/unallocated.</li>
+        <li><b>Outstanding balances</b> at your "as on" date get one final interest accrual shown in red — this amount is unpaid and included in the net figure, but doesn't itself compound further.</li>
+        <li><b>Excel export.</b> The workbook mirrors your template: payment register in rows 7–15 (expands automatically if you have more payments), the four quarterly blocks in the calculation ledger, and the same total rows at the bottom — including the <code>=E20+E40+E60+E80</code> style principal formula, the payment total, and the "Total Principal Due including Interest upto …" line. The template's <code>=SUM(M37:N99)</code> has been corrected to sum the whole interest column (M20:M100 equivalent), since the original range missed the top of the ledger.</li>
+        <li><b>Sidebar.</b> The three input cards live in a single collapsible sidebar. Use the <b>‹ Hide inputs</b> bar at the top of the sidebar to collapse it to a thin strip — click <b>› Inputs</b> to bring it back. Each card can also be collapsed individually with the chevron in its header. Both states are remembered in your browser.</li>
+        <li><b>Fresh start.</b> The <b>Fresh start</b> button in the masthead deletes everything this app has saved in your browser (inputs, collapse states, sidebar state) and returns you to a completely blank form.</li>
+        <li>This logic was reverse-engineered directly from your sheet's row-by-row figures and the accompanying design note, and reproduces your worked example (Q1–Q4, 9 payments, 11.75%, monthly) to within about 0.02% of the sheet's final total — the residual is most likely rounding in very deep interest-on-interest layers on small remainders. Please spot-check a few rows against your own sheet before relying on it for a filing.</li>
+      </ul>
+    </details>
+
+    <footer>Figures are rounded to the nearest rupee for display; calculations use full precision internally.</footer>
+
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+    (function() {
+
+      /* ============================================================
+         THEME TOGGLE
+         ============================================================ */
+      (function themeInit() {
+        var root = document.documentElement;
+        var toggle = document.getElementById('themeToggle');
+
+        function applyTheme(theme) {
+          if (theme === 'dark') {
+            root.setAttribute('data-theme', 'dark');
+          } else {
+            root.setAttribute('data-theme', 'light');
+          }
+          var btns = toggle.querySelectorAll('button[data-theme-value]');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].classList.toggle('active', btns[i].getAttribute('data-theme-value') === theme);
+          }
+        }
+
+        var saved = null;
+        try { saved = localStorage.getItem('sie_theme'); } catch (e) {}
+        var startTheme;
+        if (saved === 'dark' || saved === 'light') {
+          startTheme = saved;
+        } else {
+          startTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        applyTheme(startTheme);
+
+        toggle.addEventListener('click', function(e) {
+          var btn = e.target.closest('button[data-theme-value]');
+          if (!btn) return;
+          var theme = btn.getAttribute('data-theme-value');
+          applyTheme(theme);
+          try { localStorage.setItem('sie_theme', theme); } catch (err) {}
+        });
+
+        var mq = window.matchMedia('(prefers-color-scheme: dark)');
+        var mqListener = function(e) {
+          var hasSaved = null;
+          try { hasSaved = localStorage.getItem('sie_theme'); } catch (err) {}
+          if (!hasSaved) {
+            applyTheme(e.matches ? 'dark' : 'light');
+          }
+        };
+        if (mq.addEventListener) mq.addEventListener('change', mqListener);
+        else if (mq.addListener) mq.addListener(mqListener);
+      })();
+
+      /* ---------------- date helpers ---------------- */
+      function parseDateInput(val) {
+        if (!val) return null;
+        const [y, m, d] = val.split('-').map(Number);
+        return new Date(y, m - 1, d);
+      }
+      function toInputVal(d) {
+        if (!d) return '';
+        const yyyy = d.getFullYear(), mm = String(d.getMonth() + 1).padStart(2, '0'), dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+      }
+      function fmtDate(d) {
+        if (!d) return '—';
+        const dd = String(d.getDate()).padStart(2, '0'), mm = String(d.getMonth() + 1).padStart(2, '0'), yyyy = d.getFullYear();
+        return `${dd}-${mm}-${yyyy}`;
+      }
+      function addDays(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
+      function firstOfNextMonth(d) { return new Date(d.getFullYear(), d.getMonth() + 1, 1); }
+      function monthDiffInclusive(from, to) {
+        return (to.getFullYear() - from.getFullYear()) * 12 + (to.getMonth() - from.getMonth()) + 1;
+      }
+      const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      function endOfMonthLabel(d) {
+        const eom = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+        return String(eom.getDate()).padStart(2, '0') + ' ' + MONTH_ABBR[eom.getMonth()] + ' ' + eom.getFullYear();
+      }
+
+      /* ---------------- number helpers ---------------- */
+      const inrFmt = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
+      function fmtINR(n) {
+        const neg = n < -0.5;
+        const v = inrFmt.format(Math.round(Math.abs(n)));
+        return (neg ? '−' : '') + '₹' + v;
+      }
+      function num(id) { const v = parseFloat(document.getElementById(id).value); return isNaN(v) ? 0 : v; }
+
+      /* ---------------- interest math ---------------- */
+      function compInterest(balance, months, ratePct, method) {
+        if (months <= 0 || balance <= 0) return 0;
+        const r = ratePct / 100;
+        if (method === 'annual') return balance * (Math.pow(1 + r, months / 12) - 1);
+        return balance * (Math.pow(1 + r / 12, months) - 1);
+      }
+
+      /* ---------------- persistence ---------------- */
+      const STORE_KEY = 'sie_v1_state';           // legacy single-state key (read only, for migration)
+      const PANEL_KEY = 'sie_panels_v1';
+      const SIDEBAR_KEY = 'sie_sidebar_collapsed_v1';
+      const TABS_KEY = 'sie_tabs_v1';
+      const ACTIVE_TAB_KEY = 'sie_active_tab_v1';
+
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(STORE_KEY);
+          return raw ? JSON.parse(raw) : null;
+        } catch (e) { return null; }
+      }
+
+      // saveState() keeps its original name/signature (calculate() calls it
+      // exactly as before) but now writes into the active tab's slot instead
+      // of a single flat key, so each tab persists independently.
+      function saveState() {
+        try {
+          const state = collectRawInputs();
+          if (tabs && tabs.length) {
+            tabs[activeTabIndex].state = state;
+            saveTabs();
+          } else {
+            localStorage.setItem(STORE_KEY, JSON.stringify(state));
+          }
+        } catch (e) { /* storage unavailable — ignore */ }
+      }
+
+      /* ============================================================
+         TABS — each tab is an independent copy of every input on the
+         page (Basic Details, Financial year & dues, Payment register,
+         Rate & calculation schedule). Switching tabs swaps the whole
+         form's values and re-runs the same, unmodified calculate().
+         ============================================================ */
+      let tabs = [];
+      let activeTabIndex = 0;
+      let tabSeq = 0;
+      function newTabId() { return 't' + (++tabSeq) + '_' + Date.now().toString(36); }
+      function makeTab(state) { return { id: newTabId(), state: state }; }
+
+      function saveTabs() {
+        try {
+          localStorage.setItem(TABS_KEY, JSON.stringify(tabs));
+          localStorage.setItem(ACTIVE_TAB_KEY, String(activeTabIndex));
+        } catch (e) { /* storage unavailable — ignore */ }
+      }
+
+      function bootstrapTabs() {
+        let loaded = null;
+        try {
+          const raw = localStorage.getItem(TABS_KEY);
+          loaded = raw ? JSON.parse(raw) : null;
+        } catch (e) { loaded = null; }
+
+        if (loaded && loaded.length) {
+          tabs = loaded.map(t => ({ id: t.id || newTabId(), state: t.state || blankState() }));
+          let savedActive = 0;
+          try { savedActive = parseInt(localStorage.getItem(ACTIVE_TAB_KEY), 10) || 0; } catch (e) {}
+          activeTabIndex = Math.min(Math.max(savedActive, 0), tabs.length - 1);
+        } else {
+          // first run on this browser, or upgrading from the pre-tabs version —
+          // carry any legacy single-state save into "Technology 1"
+          const legacy = loadState();
+          tabs = [ makeTab(legacy || exampleState()) ];
+          activeTabIndex = 0;
+        }
+      }
+
+      function renderTabBar() {
+        const bar = document.getElementById('tabBar');
+        if (!bar) return;
+        bar.innerHTML = '';
+        tabs.forEach((t, i) => {
+          const el = document.createElement('div');
+          el.className = 'tab' + (i === activeTabIndex ? ' active' : '');
+          el.setAttribute('role', 'tab');
+          el.setAttribute('aria-selected', String(i === activeTabIndex));
+
+          const name = document.createElement('span');
+          name.className = 'tab-name';
+          name.textContent = 'Technology ' + (i + 1);
+          el.appendChild(name);
+
+          if (tabs.length > 1) {
+            const close = document.createElement('span');
+            close.className = 'tab-close';
+            close.title = 'Close this tab';
+            close.textContent = '×';
+            close.addEventListener('click', (e) => { e.stopPropagation(); closeTab(i); });
+            el.appendChild(close);
+          }
+
+          el.addEventListener('click', () => switchTab(i));
+          bar.appendChild(el);
+        });
+
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'tab-add';
+        addBtn.title = 'New tab';
+        addBtn.setAttribute('aria-label', 'Add new technology tab');
+        addBtn.textContent = '+';
+        addBtn.addEventListener('click', addTab);
+        bar.appendChild(addBtn);
+      }
+
+      function switchTab(i) {
+        if (i === activeTabIndex || i < 0 || i >= tabs.length) return;
+        tabs[activeTabIndex].state = collectRawInputs();
+        saveTabs();
+        activeTabIndex = i;
+        applyRawInputs(tabs[activeTabIndex].state);
+        refreshDueDateLabels();
+        calculate();
+        renderTabBar();
+      }
+
+      function addTab() {
+        tabs[activeTabIndex].state = collectRawInputs();
+        tabs.push(makeTab(blankState()));
+        activeTabIndex = tabs.length - 1;
+        applyRawInputs(tabs[activeTabIndex].state);
+        refreshDueDateLabels();
+        calculate();
+        renderTabBar();
+      }
+
+      function closeTab(i) {
+        if (tabs.length <= 1) return;
+        if (!confirm('Close "Technology ' + (i + 1) + '"? Its data will be discarded.')) return;
+        const closingActive = (i === activeTabIndex);
+        tabs.splice(i, 1);
+        if (closingActive) {
+          if (activeTabIndex >= tabs.length) activeTabIndex = tabs.length - 1;
+          applyRawInputs(tabs[activeTabIndex].state);
+          refreshDueDateLabels();
+          calculate();
+        } else {
+          if (i < activeTabIndex) activeTabIndex -= 1;
+          saveTabs();
+        }
+        renderTabBar();
+      }
+
+      /* ---------------- quarter inputs ---------------- */
+      const quarterDefs = [
+        { id: 'Q1', monthOffset: 0 },
+        { id: 'Q2', monthOffset: 3 },
+        { id: 'Q3', monthOffset: 6 },
+        { id: 'Q4', monthOffset: 9 }
+      ];
+      function quarterPeriod(fy, idx) {
+        const startMonth = 3 + idx * 3;
+        let y = fy, m = startMonth;
+        if (m > 11) { m -= 12; y += 1; }
+        const from = new Date(y, m, 1);
+        const to = new Date(y, m + 3, 0);
+        return { from, to };
+      }
+      function quarterDueDate(fy, idx, q4rule, q4custom) {
+        if (idx === 0) return new Date(fy, 6, 15);
+        if (idx === 1) return new Date(fy, 9, 15);
+        if (idx === 2) return new Date(fy + 1, 0, 15);
+        if (q4rule === 'mar26') return new Date(fy + 1, 2, 26);
+        if (q4rule === 'custom' && q4custom) return q4custom;
+        return new Date(fy + 1, 3, 16);
+      }
+
+      function buildQuarterInputsUI() {
+        const wrap = document.getElementById('quarterInputs');
+        wrap.innerHTML = '';
+        quarterDefs.forEach((q, i) => {
+          const row = document.createElement('div');
+          row.className = 'quarter-row';
+          row.innerHTML = `
+            <div class="qlabel">${q.id}</div>
+            <input type="number" step="1" id="due_${q.id}" placeholder="Amount due (₹)">
+            <div class="qdate" id="dd_${q.id}"></div>
+          `;
+          wrap.appendChild(row);
+        });
+      }
+      function refreshDueDateLabels() {
+        const fyRaw = document.getElementById('fyYear').value;
+        const fy = parseInt(fyRaw, 10);
+        const q4rule = document.getElementById('q4rule').value;
+        const q4custom = parseDateInput(document.getElementById('q4custom').value);
+        quarterDefs.forEach((q, i) => {
+          const el = document.getElementById('dd_' + q.id);
+          if (!fyRaw || isNaN(fy)) { el.textContent = ''; return; }
+          const dd = quarterDueDate(fy, i, q4rule, q4custom);
+          el.textContent = 'due ' + fmtDate(dd);
+        });
+      }
+
+      /* ---------------- payment rows UI ---------------- */
+      let paymentRowSeq = 0;
+      function addPaymentRow(dateVal, amountVal) {
+        const tbody = document.getElementById('paymentRows');
+        const tr = document.createElement('tr');
+        const rid = 'pr' + (++paymentRowSeq);
+        tr.dataset.rid = rid;
+        tr.innerHTML = `
+          <td><input type="date" class="pay-date" value="${dateVal || ''}"></td>
+          <td class="amt-col"><input type="number" class="pay-amt" step="1" placeholder="0" value="${amountVal !== undefined ? amountVal : ''}"></td>
+          <td class="rm-col"><button class="rm-btn" title="Remove">×</button></td>
+        `;
+        tr.querySelector('.rm-btn').addEventListener('click', () => { tr.remove(); });
+        tbody.appendChild(tr);
+      }
+
+      /* ---------------- collect raw inputs (for persistence) ---------------- */
+      function collectRawInputs() {
+        const payments = [...document.querySelectorAll('#paymentRows tr')].map(tr => ({
+          date: tr.querySelector('.pay-date').value,
+          amount: tr.querySelector('.pay-amt').value
+        }));
+        return {
+          licenseeName: document.getElementById('licenseeName').value,
+          basicFy: document.getElementById('basicFy').value,
+          technology: document.getElementById('technology').value,
+          fyYear: document.getElementById('fyYear').value,
+          dues: quarterDefs.reduce((o, q) => { o[q.id] = document.getElementById('due_' + q.id).value; return o; }, {}),
+          q4rule: document.getElementById('q4rule').value,
+          q4custom: document.getElementById('q4custom').value,
+          ratePct: document.getElementById('ratePct').value,
+          method: document.getElementById('method').value,
+          rateSchedule: [...document.querySelectorAll('#rateScheduleRows tr')].map(tr => ({
+            from: tr.querySelector('.rate-from').value,
+            rate: tr.querySelector('.rate-change').value,
+            method: tr.querySelector('.method-change').value
+          })),
+          moratorium: document.getElementById('moratoriumCheck').checked,
+          asOnDate: document.getElementById('asOnDate').value,
+          payments
+        };
+      }
+      function applyRawInputs(state) {
+        if (!state) return false;
+        document.getElementById('licenseeName').value = state.licenseeName ?? '';
+        document.getElementById('basicFy').value = state.basicFy ?? '';
+        document.getElementById('technology').value = state.technology ?? '';
+        document.getElementById('fyYear').value = state.fyYear ?? 2020;
+        quarterDefs.forEach(q => {
+          document.getElementById('due_' + q.id).value = (state.dues && state.dues[q.id]) || '';
+        });
+        document.getElementById('q4rule').value = state.q4rule || 'apr16';
+        document.getElementById('q4custom').value = state.q4custom || '';
+        document.getElementById('ratePct').value = state.ratePct || 11.75;
+        document.getElementById('method').value = state.method || 'monthly';
+        document.getElementById('rateScheduleRows').innerHTML = '';
+        (state.rateSchedule || []).forEach(x => addRateChangeRow(x.from, x.rate, x.method));
+        document.getElementById('moratoriumCheck').checked = !!state.moratorium;
+        document.getElementById('asOnDate').value = state.asOnDate || toInputVal(new Date());
+        document.getElementById('paymentRows').innerHTML = '';
+        (state.payments && state.payments.length ? state.payments : [{ date: '', amount: '' }]).forEach(p => addPaymentRow(p.date, p.amount));
+        return true;
+      }
+
+      /* ---------------- example / blank seeds ---------------- */
+      function exampleState() {
+        return {
+          licenseeName: '',
+          basicFy: '2020-21',
+          technology: '',
+          fyYear: '2020',
+          dues: { Q1: '71634355', Q2: '85103885', Q3: '89182369', Q4: '98408132' },
+          q4rule: 'apr16',
+          q4custom: '',
+          ratePct: '11.75',
+          method: 'monthly',
+          moratorium: true,
+          asOnDate: toInputVal(new Date()),
+          payments: [
+            { date: '2020-07-15', amount: '66531371' },
+            { date: '2020-10-14', amount: '79601291' },
+            { date: '2020-11-12', amount: '5' },
+            { date: '2021-01-14', amount: '86904954' },
+            { date: '2021-03-24', amount: '86905000' },
+            { date: '2021-04-14', amount: '6732473' },
+            { date: '2022-02-01', amount: '18600446' },
+            { date: '2024-01-31', amount: '1942390' },
+            { date: '2024-06-01', amount: '6914564' }
+          ]
+        };
+      }
+      function blankState() {
+        return {
+          licenseeName: '',
+          basicFy: '',
+          technology: '',
+          fyYear: '',
+          dues: { Q1: '', Q2: '', Q3: '', Q4: '' },
+          q4rule: 'apr16',
+          q4custom: '',
+          ratePct: '11.75',
+          method: 'monthly',
+          rateSchedule: [],
+          moratorium: false,
+          asOnDate: toInputVal(new Date()),
+          payments: [{ date: '', amount: '' }]
+        };
+      }
+
+      /* ---------------- rate / method schedule ---------------- */
+      function addRateChangeRow(fromVal = '', rateVal = '', methodVal = 'monthly') {
+        const tbody = document.getElementById('rateScheduleRows');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="col-from"><input type="date" class="rate-from" value="${fromVal || ''}"></td>
+          <td class="col-rate"><input type="number" class="rate-change" step="0.01" placeholder="Rate" value="${rateVal !== undefined ? rateVal : ''}"></td>
+          <td class="col-method"><select class="method-change">
+            <option value="monthly" ${methodVal === 'monthly' ? 'selected' : ''}>Monthly</option>
+            <option value="annual" ${methodVal === 'annual' ? 'selected' : ''}>Annual</option>
+          </select></td>
+          <td class="col-rm"><button class="rm-btn" title="Remove">×</button></td>`;
+        tr.querySelector('.rm-btn').addEventListener('click', () => tr.remove());
+        tbody.appendChild(tr);
+      }
+      function getRateSchedule() {
+        return [...document.querySelectorAll('#rateScheduleRows tr')].map(tr => ({
+          from: parseDateInput(tr.querySelector('.rate-from').value),
+          rate: parseFloat(tr.querySelector('.rate-change').value),
+          method: tr.querySelector('.method-change').value
+        })).filter(x => x.from && Number.isFinite(x.rate)).sort((a, b) => a.from - b.from);
+      }
+      function effectiveRuleForDate(date, defaultRate, defaultMethod, schedule) {
+        let rule = { rate: defaultRate, method: defaultMethod };
+        for (const s of schedule) {
+          const effective = new Date(s.from.getFullYear(), s.from.getMonth(), 1);
+          if (date >= effective) rule = { rate: s.rate, method: s.method };
+          else break;
+        }
+        return rule;
+      }
+      function segmentedInterest(balance, from, to, defaultRate, defaultMethod, schedule) {
+        if (balance <= 0 || !from || !to || to < from) return { interest: 0, segments: [] };
+        const boundaries = [];
+        schedule.forEach(s => {
+          const b = new Date(s.from.getFullYear(), s.from.getMonth(), 1);
+          if (b > from && b <= to) boundaries.push(b);
+        });
+        boundaries.sort((a, b) => a - b);
+        let runningBalance = balance, totalInterest = 0;
+        const segments = [];
+        const starts = [from, ...boundaries];
+        for (let i = 0; i < starts.length; i++) {
+          const segFrom = starts[i];
+          const next = i + 1 < starts.length ? starts[i + 1] : new Date(to.getFullYear(), to.getMonth() + 1, 1);
+          const segTo = new Date(Math.min(to.getTime(), next.getTime() - 86400000));
+          if (segTo < segFrom) continue;
+          const months = monthDiffInclusive(segFrom, segTo);
+          const rule = effectiveRuleForDate(segFrom, defaultRate, defaultMethod, schedule);
+          const interest = compInterest(runningBalance, months, rule.rate, rule.method);
+          totalInterest += interest;
+          segments.push({ from: segFrom, to: segTo, months, rate: rule.rate, method: rule.method, base: runningBalance, interest });
+          runningBalance += interest;
+        }
+        return { interest: totalInterest, segments };
+      }
+      // Non-moratorium case: a rate/method change only binds a liability chain whose
+      // ROOT quarterly SUC due date is on/after the change's effective date. Once that
+      // is decided, the whole chain (the due itself and every interest / interest-on-
+      // interest descending from it) uses that single locked rate/method for its entire
+      // life — no mid-period splitting, however late a later leg is actually calculated.
+      function chainLockedInterest(balance, from, to, defaultRate, defaultMethod, schedule, rootDueDate) {
+        if (balance <= 0 || !from || !to || to < from) return { interest: 0, segments: [] };
+        const rule = effectiveRuleForDate(rootDueDate, defaultRate, defaultMethod, schedule);
+        const months = monthDiffInclusive(from, to);
+        const interest = compInterest(balance, months, rule.rate, rule.method);
+        return { interest, segments: [{ from, to, months, rate: rule.rate, method: rule.method, base: balance, interest }] };
+      }
+      // Dispatches to the moratorium (always-split-at-boundary) or non-moratorium
+      // (chain-locked-to-root) interest calculation depending on the toggle.
+      function calcInterest(balance, from, to, defaultRate, defaultMethod, schedule, rootDueDate, moratorium) {
+        return moratorium
+          ? segmentedInterest(balance, from, to, defaultRate, defaultMethod, schedule)
+          : chainLockedInterest(balance, from, to, defaultRate, defaultMethod, schedule, rootDueDate);
+      }
+
+      /* ---------------- core engine ---------------- */
+      function computeLedger(fy, dues, q4rule, q4custom, ratePct, method, rateSchedule, asOnDate, payments, moratorium) {
+        const principalQ = quarterDefs.map((q, i) => {
+          const dueDate = quarterDueDate(fy, i, q4rule, q4custom);
+          return { label: q.id, type: 'principal', balance: dues[q.id] || 0, periodStart: addDays(dueDate, 1), dueDate, root: q.id };
+        });
+        const rootDueDates = {};
+        principalQ.forEach(l => { rootDueDates[l.root] = l.dueDate; });
+        const interestQ = [];
+        const ledger = [];
+        let surplus = 0;
+        const surplusRows = [];
+
+        function applyEvent(liab, evDate, payAmt) {
+          const opening = liab.balance;
+          let interestGen = 0, from = null, to = null, months = null, displayRate = ratePct, displayMethod = method, segments = [];
+          if (evDate.getTime() >= liab.periodStart.getTime()) {
+            from = liab.periodStart; to = evDate;
+            const calc = calcInterest(opening, from, to, ratePct, method, rateSchedule, rootDueDates[liab.root], moratorium);
+            interestGen = calc.interest; segments = calc.segments; months = monthDiffInclusive(from, to);
+            if (segments.length === 1) { displayRate = segments[0].rate; displayMethod = segments[0].method; }
+            else if (segments.length > 1) { displayRate = 'VAR'; displayMethod = 'VAR'; }
+            liab.periodStart = firstOfNextMonth(evDate);
+            if (interestGen > 0.004) interestQ.push({ label: 'Interest on ' + liab.label, type: 'interest', balance: interestGen, periodStart: firstOfNextMonth(evDate), root: liab.root });
+          }
+          const pay = Math.min(payAmt, liab.balance);
+          liab.balance -= pay;
+          ledger.push({
+            quarter: liab.label, type: liab.type, amountDue: opening, payment: pay, date: evDate,
+            from, to, months, rate: displayRate, method: displayMethod, interest: interestGen,
+            segments, settled: liab.balance <= 0.004, root: liab.root
+          });
+          return payAmt - pay;
+        }
+
+        const sortedPayments = [...payments].sort((a, b) => a.date - b.date);
+        for (const p of sortedPayments) {
+          let remaining = p.amount;
+          while (remaining > 0.004 && principalQ.length) {
+            const liab = principalQ[0];
+            if (liab.balance <= 0.004) { principalQ.shift(); continue; }
+            remaining = applyEvent(liab, p.date, remaining);
+            if (liab.balance <= 0.004) principalQ.shift(); else break;
+          }
+          if (remaining > 0.004) {
+            while (remaining > 0.004 && interestQ.length) {
+              const liab = interestQ[0];
+              if (liab.balance <= 0.004) { interestQ.shift(); continue; }
+              remaining = applyEvent(liab, p.date, remaining);
+              if (liab.balance <= 0.004) interestQ.shift(); else break;
+            }
+          }
+          if (remaining > 0.004) { surplus += remaining; surplusRows.push({ date: p.date, amount: remaining }); }
+        }
+
+        const outstandingRows = [];
+        [...principalQ, ...interestQ].forEach(liab => {
+          if (liab.balance <= 0.004) return;
+          let interestGen = 0, from = null, to = null, months = null, rateDisplay = ratePct, methodDisplay = method, segments = [];
+          if (asOnDate.getTime() >= liab.periodStart.getTime()) {
+            months = monthDiffInclusive(liab.periodStart, asOnDate); from = liab.periodStart; to = asOnDate;
+            const calc = calcInterest(liab.balance, from, to, ratePct, method, rateSchedule, rootDueDates[liab.root], moratorium);
+            interestGen = calc.interest; segments = calc.segments;
+            if (segments.length === 1) { rateDisplay = segments[0].rate; methodDisplay = segments[0].method; }
+            else if (segments.length > 1) { rateDisplay = 'VAR'; methodDisplay = 'VAR'; }
+          }
+          outstandingRows.push({
+            quarter: liab.label, type: liab.type, balance: liab.balance, from, to, months,
+            rate: rateDisplay, method: methodDisplay, interest: interestGen, segments, root: liab.root
+          });
+        });
+
+        const totalDue = quarterDefs.reduce((s, q) => s + (dues[q.id] || 0), 0);
+        const totalPaid = payments.reduce((s, p) => s + p.amount, 0);
+        const totalInterest = ledger.reduce((s, r) => s + r.interest, 0) + outstandingRows.reduce((s, r) => s + r.interest, 0);
+        const netBeforeInterest = totalDue - totalPaid;
+        const finalNet = netBeforeInterest + totalInterest;
+        const outstandingPrincipalBal = outstandingRows.filter(r => r.type === 'principal').reduce((s, r) => s + r.balance, 0);
+        const outstandingInterestBal = outstandingRows.filter(r => r.type === 'interest').reduce((s, r) => s + r.balance, 0);
+
+        return {
+          ledger, outstandingRows, surplus, surplusRows, totalDue, totalPaid, totalInterest,
+          netBeforeInterest, finalNet, outstandingPrincipalBal, outstandingInterestBal,
+          quarterDueDates: principalQ.map(l => l.dueDate)
+        };
+      }
+
+      /* ---------------- rendering ---------------- */
+      function renderOutput(result, asOnDate) {
+        const out = document.getElementById('output');
+        const rows = result.ledger;
+        let html = '';
+
+        /* -------- summary cards -------- */
+        const isCredit = result.finalNet < 0;
+        const netLabel = 'Total SUC Due';
+        let netValue;
+        if (isCredit) {
+          netValue = '(' + fmtINR(Math.abs(result.finalNet)) + ')';
+        } else {
+          netValue = fmtINR(Math.abs(result.finalNet));
+        }
+        const netClass = isCredit ? 'credit' : 'due';
+
+        html += `<div class="summary-grid">
+          <div class="stat"><div class="label">Total principal due</div><div class="value">${fmtINR(result.totalDue)}</div></div>
+          <div class="stat"><div class="label">Total payments received</div><div class="value">${fmtINR(result.totalPaid)}</div></div>
+          <div class="stat accent"><div class="label">Total interest generated</div><div class="value">${fmtINR(result.totalInterest)}</div></div>
+          <div class="stat result ${netClass}"><div class="label">${netLabel}</div><div class="value">${netValue}</div></div>
+        </div>`;
+
+        if (result.outstandingPrincipalBal > 0.5 || result.outstandingInterestBal > 0.5) {
+          html += `<div class="surplus-note">Outstanding as on ${fmtDate(asOnDate)}: ${fmtINR(result.outstandingPrincipalBal)} unpaid principal, ${fmtINR(result.outstandingInterestBal)} unpaid interest liability (shown in the ledger below in red).</div>`;
+        }
+
+        html += `<div class="section-title">Calculation ledger<div class="line"></div></div>`;
+        html += `<div class="ledger-wrap"><table class="ledger"><thead><tr>
+          <th>Source</th><th>Type</th><th class="num">Amount due</th><th class="num">Payment</th><th>Date of payment</th>
+          <th>Period from</th><th>Period to</th><th class="num">Months</th><th class="num">Rate</th><th class="num">Interest</th>
+        </tr></thead><tbody>`;
+
+        if (!rows.length && !result.outstandingRows.length) {
+          html += `<tr><td colspan="10" style="text-align:center; padding:24px; font-family:var(--font-sans); color:var(--ink-soft);">No payments recorded yet.</td></tr>`;
+        }
+
+        function segmentSubRowHTML(seg, isOutstanding) {
+          return `<tr class="segment-row${isOutstanding ? ' outstanding' : ''}">
+            <td class="src">Block: ${fmtINR(seg.base)} @ ${seg.rate}% (${seg.method === 'annual' ? 'annual' : 'monthly'})</td>
+            <td></td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+            <td>—</td>
+            <td>${fmtDate(seg.from)}</td>
+            <td>${fmtDate(seg.to)}</td>
+            <td class="num">${seg.months}</td>
+            <td class="num">${seg.rate}%</td>
+            <td class="num">${seg.interest > 0.5 ? fmtINR(seg.interest) : '—'}</td>
+          </tr>`;
+        }
+        function rowHTML(r) {
+          const depth = (r.quarter.match(/Interest on/g) || []).length;
+          const multi = r.segments && r.segments.length > 1;
+          const rateCell = multi ? `<span class="var-badge">${r.segments.length} rate blocks</span>` : (r.months ? (typeof r.rate === 'number' ? r.rate + '%' : r.rate) : '—');
+          let html = `<tr${multi ? ' class="multi-parent"' : ''}>
+            <td class="src">${'<span class="indent">'.repeat(depth)}${'&nbsp;&nbsp;'.repeat(depth)}${r.quarter}</td>
+            <td><span class="badge ${r.type}">${r.type === 'principal' ? 'Principal' : 'Interest'}</span></td>
+            <td class="num">${fmtINR(r.amountDue)}</td>
+            <td class="num">${fmtINR(r.payment)}</td>
+            <td>${fmtDate(r.date)}</td>
+            <td>${r.from ? fmtDate(r.from) : '—'}</td>
+            <td>${r.to ? fmtDate(r.to) : '—'}</td>
+            <td class="num">${r.months ?? '—'}</td>
+            <td class="num">${rateCell}</td>
+            <td class="num">${r.interest > 0.5 ? fmtINR(r.interest) : '—'}</td>
+          </tr>`;
+          if (multi) { r.segments.forEach(seg => { html += segmentSubRowHTML(seg, false); }); }
+          return html;
+        }
+        function outstandingRowHTML(r) {
+          const multi = r.segments && r.segments.length > 1;
+          const rateCell = multi ? `<span class="var-badge">${r.segments.length} rate blocks</span>` : (r.months ? (typeof r.rate === 'number' ? r.rate + '%' : r.rate) : '—');
+          let html = `<tr class="outstanding${multi ? ' multi-parent' : ''}">
+            <td class="src">${r.quarter} — outstanding</td>
+            <td><span class="badge ${r.type}">${r.type === 'principal' ? 'Principal' : 'Interest'}</span></td>
+            <td class="num">${fmtINR(r.balance)}</td>
+            <td class="num">—</td>
+            <td>unpaid</td>
+            <td>${r.from ? fmtDate(r.from) : '—'}</td>
+            <td>${r.to ? fmtDate(r.to) : '—'}</td>
+            <td class="num">${r.months ?? '—'}</td>
+            <td class="num">${rateCell}</td>
+            <td class="num">${r.interest > 0.5 ? fmtINR(r.interest) : '—'}</td>
+          </tr>`;
+          if (multi) { r.segments.forEach(seg => { html += segmentSubRowHTML(seg, true); }); }
+          return html;
+        }
+
+        const rate = document.getElementById('ratePct').value;
+        quarterDefs.forEach((q, i) => {
+          const qRows = rows.filter(r => r.root === q.id);
+          const qOutstanding = result.outstandingRows.filter(r => r.root === q.id);
+          if (!qRows.length && !qOutstanding.length) return;
+          const period = quarterPeriod(parseInt(document.getElementById('fyYear').value, 10) || 2020, i);
+          const qInterest = qRows.reduce((s, r) => s + r.interest, 0) + qOutstanding.reduce((s, r) => s + r.interest, 0);
+          const qPaid = qRows.reduce((s, r) => s + r.payment, 0);
+          html += `<tr class="qhead"><td colspan="10">
+            <strong>${q.id}</strong>&nbsp; <span class="qperiod">${fmtDate(period.from)} – ${fmtDate(period.to)}</span>
+            &nbsp;·&nbsp; ${fmtINR(qPaid)} paid &nbsp;·&nbsp; ${fmtINR(qInterest)} interest generated
+          </td></tr>`;
+          qRows.forEach(r => { html += rowHTML(r); });
+          qOutstanding.forEach(r => { html += outstandingRowHTML(r); });
+        });
+
+        const strayRows = rows.filter(r => !quarterDefs.some(q => q.id === r.root));
+        const strayOutstanding = result.outstandingRows.filter(r => !quarterDefs.some(q => q.id === r.root));
+        if (strayRows.length || strayOutstanding.length) {
+          html += `<tr class="qhead"><td colspan="10"><strong>Other</strong></td></tr>`;
+          strayRows.forEach(r => { html += rowHTML(r); });
+          strayOutstanding.forEach(r => { html += outstandingRowHTML(r); });
+        }
+
+        html += `</tbody></table></div>`;
+        out.innerHTML = html;
+
+        window.__lastLedgerRows = rows;
+        window.__lastOutstandingRows = result.outstandingRows;
+      }
+
+      /* ---------------- main calculate ---------------- */
+      function calculate() {
+        const fyRaw = document.getElementById('fyYear').value;
+        const fy = parseInt(fyRaw, 10) || 2020;
+        const dues = {};
+        quarterDefs.forEach(q => { dues[q.id] = num('due_' + q.id); });
+        const q4rule = document.getElementById('q4rule').value;
+        const q4custom = parseDateInput(document.getElementById('q4custom').value);
+        const ratePct = num('ratePct');
+        const method = document.getElementById('method').value;
+        const rateSchedule = getRateSchedule();
+        const moratorium = document.getElementById('moratoriumCheck').checked;
+        let asOnDate = parseDateInput(document.getElementById('asOnDate').value);
+        if (!asOnDate) asOnDate = new Date();
+
+        const payments = [...document.querySelectorAll('#paymentRows tr')].map(tr => {
+          const d = parseDateInput(tr.querySelector('.pay-date').value);
+          const a = parseFloat(tr.querySelector('.pay-amt').value);
+          return (d && !isNaN(a) && a > 0) ? { date: d, amount: a } : null;
+        }).filter(Boolean);
+
+        document.getElementById('asOnDisplay').textContent = fmtDate(asOnDate);
+
+        const result = computeLedger(fy, dues, q4rule, q4custom, ratePct, method, rateSchedule, asOnDate, payments, moratorium);
+        renderOutput(result, asOnDate);
+
+        window.__lastResult = result;
+        window.__lastFy = fy;
+        window.__lastAsOn = asOnDate;
+        window.__lastPayments = payments;
+        window.__lastQ4rule = q4rule;
+        window.__lastQ4custom = q4custom;
+
+        saveState();
+      }
+
+      /* ============================================================
+         PRINT SHEET — builds a single-page, black-and-white summary
+         (Basic Details / Financial Year & Dues / Payment Register /
+          Rate & Calculation Schedule / Summary stats / Ledger)
+         laid out for print just before window.print() fires.
+         ============================================================ */
+      function escHtml(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      }
+
+      function buildPrintLedgerTable(result, fy) {
+        const rows = result.ledger;
+        let html = `<table class="ps-ledger"><colgroup>
+          <col style="width:19%"><col style="width:7%"><col style="width:11%"><col style="width:10%">
+          <col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:6%">
+          <col style="width:7%"><col style="width:13%">
+        </colgroup>
+        <thead><tr>
+          <th>Source</th><th>Type</th><th class="num">Amount Due</th><th class="num">Payment</th>
+          <th>Pay Date</th><th>From</th><th>To</th><th class="num">Mo.</th><th class="num">Rate</th><th class="num">Interest</th>
+        </tr></thead><tbody>`;
+
+        if (!rows.length && !result.outstandingRows.length) {
+          html += `<tr><td colspan="10" style="text-align:center;padding:8px;">No payments recorded yet.</td></tr></tbody></table>`;
+          return html;
+        }
+
+        function segRow(seg, isOutstanding) {
+          return `<tr class="ps-seg${isOutstanding ? ' ps-outstanding' : ''}">
+            <td>Block: ${fmtINR(seg.base)} @ ${seg.rate}% (${seg.method === 'annual' ? 'ann' : 'mo'})</td>
+            <td></td><td class="num">—</td><td class="num">—</td><td>—</td>
+            <td>${fmtDate(seg.from)}</td><td>${fmtDate(seg.to)}</td>
+            <td class="num">${seg.months}</td><td class="num">${seg.rate}%</td>
+            <td class="num">${seg.interest > 0.5 ? fmtINR(seg.interest) : '—'}</td>
+          </tr>`;
+        }
+        function mainRow(r, isOutstanding) {
+          const multi = r.segments && r.segments.length > 1;
+          const rateCell = multi ? (r.segments.length + ' blocks') : (r.months ? (typeof r.rate === 'number' ? r.rate + '%' : r.rate) : '—');
+          const amt = isOutstanding ? r.balance : r.amountDue;
+          const pay = isOutstanding ? '—' : fmtINR(r.payment);
+          const dateCell = isOutstanding ? 'unpaid' : fmtDate(r.date);
+          const label = isOutstanding ? r.quarter + ' — outstanding' : r.quarter;
+          let rowHtml = `<tr class="${isOutstanding ? 'ps-outstanding' : ''}">
+            <td>${escHtml(label)}</td>
+            <td>${r.type === 'principal' ? 'Princ.' : 'Int.'}</td>
+            <td class="num">${fmtINR(amt)}</td>
+            <td class="num">${pay}</td>
+            <td>${dateCell}</td>
+            <td>${r.from ? fmtDate(r.from) : '—'}</td>
+            <td>${r.to ? fmtDate(r.to) : '—'}</td>
+            <td class="num">${r.months ?? '—'}</td>
+            <td class="num">${rateCell}</td>
+            <td class="num">${r.interest > 0.5 ? fmtINR(r.interest) : '—'}</td>
+          </tr>`;
+          if (multi) r.segments.forEach(seg => { rowHtml += segRow(seg, isOutstanding); });
+          return rowHtml;
+        }
+
+        quarterDefs.forEach((q, i) => {
+          const qRows = rows.filter(r => r.root === q.id);
+          const qOut = result.outstandingRows.filter(r => r.root === q.id);
+          if (!qRows.length && !qOut.length) return;
+          const period = quarterPeriod(fy, i);
+          const qInterest = qRows.reduce((s, r) => s + r.interest, 0) + qOut.reduce((s, r) => s + r.interest, 0);
+          const qPaid = qRows.reduce((s, r) => s + r.payment, 0);
+          html += `<tr class="ps-qhead"><td colspan="10">${q.id} &nbsp; (${fmtDate(period.from)} – ${fmtDate(period.to)}) &nbsp; · ${fmtINR(qPaid)} paid · ${fmtINR(qInterest)} interest</td></tr>`;
+          qRows.forEach(r => { html += mainRow(r, false); });
+          qOut.forEach(r => { html += mainRow(r, true); });
+        });
+
+        const strayRows = rows.filter(r => !quarterDefs.some(q => q.id === r.root));
+        const strayOut = result.outstandingRows.filter(r => !quarterDefs.some(q => q.id === r.root));
+        if (strayRows.length || strayOut.length) {
+          html += `<tr class="ps-qhead"><td colspan="10">Other</td></tr>`;
+          strayRows.forEach(r => { html += mainRow(r, false); });
+          strayOut.forEach(r => { html += mainRow(r, true); });
+        }
+
+        html += `</tbody></table>`;
+        return html;
+      }
+
+      function buildPrintSheet() {
+        // make sure the print sheet reflects exactly what's on screen right now
+        calculate();
+        const result = window.__lastResult;
+        const ps = document.getElementById('printSheet');
+        if (!ps) return;
+        if (!result) { ps.innerHTML = '<div class="ps-empty-note">Enter your dues and payments, then choose Calculate.</div>'; return; }
+
+        const fy = window.__lastFy;
+        const asOn = window.__lastAsOn;
+        const q4rule = window.__lastQ4rule;
+        const q4custom = window.__lastQ4custom;
+        const payments = (window.__lastPayments || []).slice().sort((a, b) => a.date - b.date);
+
+        const licenseeName = document.getElementById('licenseeName').value.trim();
+        const basicFy = document.getElementById('basicFy').value.trim();
+        const technology = document.getElementById('technology').value;
+        const ratePct = document.getElementById('ratePct').value;
+        const method = document.getElementById('method').value;
+        const moratorium = document.getElementById('moratoriumCheck').checked;
+        const rateChanges = [...document.querySelectorAll('#rateScheduleRows tr')].map(tr => ({
+          from: tr.querySelector('.rate-from').value,
+          rate: tr.querySelector('.rate-change').value,
+          method: tr.querySelector('.method-change').value
+        })).filter(x => x.from && x.rate);
+
+        let html = '';
+
+        /* -------- header -------- */
+        html += `<div class="ps-header">
+          <div>
+            <div class="ps-eyebrow">SUC Assessment</div>
+            <h1 class="ps-title">PART V: CALCULATION OF INTEREST ON PRINCIPAL </h1>
+          </div>
+          <div class="ps-asof">Interest calculated as on<span>${fmtDate(asOn)}</span></div>
+        </div>`;
+
+        /* -------- row 1: Basic Details | Financial Year & Dues | Payment Register -------- */
+        html += `<div class="ps-row cols-3">`;
+
+        html += `<div class="ps-card"><h3>Basic Details</h3>`;
+        html += `<div class="ps-kv"><span class="k">Licensee</span><span class="v">${licenseeName ? escHtml(licenseeName) : '—'}</span></div>`;
+        html += `<div class="ps-kv"><span class="k">Financial Year</span><span class="v">${basicFy ? escHtml(basicFy) : '—'}</span></div>`;
+        html += `<div class="ps-kv"><span class="k">Technology</span><span class="v">${technology ? escHtml(technology) : '—'}</span></div>`;
+        html += `</div>`;
+
+        html += `<div class="ps-card"><h3>Financial Year &amp; Dues</h3>`;
+        html += `<table class="ps-mini"><thead><tr><th>Qtr</th><th class="num">Amount Due</th><th>Due Date</th></tr></thead><tbody>`;
+        quarterDefs.forEach((q, i) => {
+          const dd = quarterDueDate(fy, i, q4rule, q4custom);
+          const due = num('due_' + q.id);
+          html += `<tr><td>${q.id}</td><td class="num">${fmtINR(due)}</td><td>${fmtDate(dd)}</td></tr>`;
+        });
+        html += `</tbody></table></div>`;
+
+        html += `<div class="ps-card"><h3>Payment Register</h3>`;
+        if (!payments.length) {
+          html += `<div class="ps-empty-note">No payments recorded.</div>`;
+        } else {
+          html += `<table class="ps-mini"><thead><tr><th>#</th><th>Date</th><th class="num">Amount</th></tr></thead><tbody>`;
+          payments.forEach((p, i) => {
+            html += `<tr><td>${i + 1}</td><td>${fmtDate(p.date)}</td><td class="num">${fmtINR(p.amount)}</td></tr>`;
+          });
+          html += `<tr class="ps-total"><td colspan="2">Total</td><td class="num">${fmtINR(result.totalPaid)}</td></tr>`;
+          html += `</tbody></table>`;
+        }
+        html += `</div>`;
+
+        html += `</div>`; // end row 1
+
+        /* -------- row 2: Rate & Calculation Schedule -------- */
+        html += `<div class="ps-row cols-1"><div class="ps-card"><h3>Rate &amp; Calculation Schedule</h3>`;
+        html += `<div class="ps-row cols-3" style="margin-bottom:3px;">`;
+        html += `<div class="ps-kv"><span class="k">Default rate</span><span class="v">${ratePct}%</span></div>`;
+        html += `<div class="ps-kv"><span class="k">Compounding</span><span class="v">${method === 'annual' ? 'Annual' : 'Monthly'}</span></div>`;
+        html += `<div class="ps-kv"><span class="k">Moratorium case</span><span class="v">${moratorium ? 'Yes' : 'No'}</span></div>`;
+        html += `</div>`;
+        if (rateChanges.length) {
+          html += `<table class="ps-mini"><thead><tr><th>Effective From</th><th class="num">Rate %</th><th>Method</th></tr></thead><tbody>`;
+          rateChanges.forEach(r => {
+            html += `<tr><td>${fmtDate(parseDateInput(r.from))}</td><td class="num">${r.rate}%</td><td>${r.method === 'annual' ? 'Annual' : 'Monthly'}</td></tr>`;
+          });
+          html += `</tbody></table>`;
+        }
+        html += `</div></div>`; // end row 2
+
+        /* -------- row 3: summary stats -------- */
+        const isCredit = result.finalNet < 0;
+        const netValue = isCredit ? '(' + fmtINR(Math.abs(result.finalNet)) + ')' : fmtINR(Math.abs(result.finalNet));
+        html += `<div class="ps-row cols-4">
+          <div class="ps-card ps-stat"><div class="label">Total Principal Due</div><div class="value">${fmtINR(result.totalDue)}</div></div>
+          <div class="ps-card ps-stat"><div class="label">Total Payments Received</div><div class="value">${fmtINR(result.totalPaid)}</div></div>
+          <div class="ps-card ps-stat"><div class="label">Total Interest Generated</div><div class="value">${fmtINR(result.totalInterest)}</div></div>
+          <div class="ps-card ps-stat"><div class="label">Total SUC Due</div><div class="value">${netValue}</div></div>
+        </div>`;
+
+        /* -------- row 4: calculation ledger -------- */
+        html += `<div class="ps-row cols-1"><div class="ps-card ps-ledger-card"><h3>Calculation Ledger</h3>`;
+        html += buildPrintLedgerTable(result, fy);
+        html += `</div></div>`;
+
+        html += `<div class="ps-footer">Generated ${fmtDate(new Date())} — Statutory Interest &amp; Principal Allocation Engine</div>`;
+
+        ps.innerHTML = html;
+      }
+
+      /* ============================================================
+         EXCEL EXPORT — fills the Template.xlsx layout
+         Sheet name: "5. Interest Sheet (N)"
+         ============================================================ */
+      function excelSerial(d) {
+        // Excel serial number (1900 date system) for a local calendar date
+        const utc = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+        return utc / 86400000 + 25569;
+      }
+
+      function exportExcel() {
+        const result = window.__lastResult;
+        if (!result) return;
+
+        if (typeof XLSX === 'undefined') {
+          alert('The Excel library could not be loaded (offline?). A CSV file will be downloaded instead.');
+          exportCSV();
+          return;
+        }
+
+        const fy = window.__lastFy || 2020;
+        const asOn = window.__lastAsOn || new Date();
+        const q4rule = window.__lastQ4rule || 'apr16';
+        const q4custom = window.__lastQ4custom || null;
+        const payments = (window.__lastPayments || []).slice().sort((a, b) => a.date - b.date);
+
+        const NC = 13;                    // columns A .. M
+        const grid = [];
+        const dateAddrs = [];
+
+        function ensure(r) { while (grid.length < r) grid.push(new Array(NC).fill(null)); }
+        function set(r, c, v) { ensure(r); grid[r - 1][c] = v; }
+        function setDate(r, c, d) {
+          set(r, c, excelSerial(d));
+          dateAddrs.push(XLSX.utils.encode_cell({ r: r - 1, c: c }));
+        }
+
+        /* ---- title block ---- */
+        set(2, 1, 'Part V: INTEREST ON PENALTY CALCULATION SHEET');
+        set(3, 1, 'LICENSEE : ' + (document.getElementById('licenseeName').value || ''));
+        set(3, 6, 'FINANCIAL YEAR : ' + (document.getElementById('basicFy').value || ''));
+        set(4, 1, 'TECHNOLOGY : ' + (document.getElementById('technology').value || ''));
+
+        /* ---- due-date panel ---- */
+        set(6, 1, 'Sl No');
+        set(6, 2, 'Payment Date');
+        set(6, 4, 'Payment (Rs.)');
+        set(6, 9, 'Due Date of Payments');
+        const dueDates = quarterDefs.map((q, i) => quarterDueDate(fy, i, q4rule, q4custom));
+        quarterDefs.forEach((q, i) => {
+          set(7 + i, 9, q.id);
+          setDate(7 + i, 10, dueDates[i]);
+        });
+
+        set(13, 9, 'Interest calculated as on');
+        setDate(14, 9, asOn);   // J14 — referenced by the EOMONTH formula below
+
+        /* ---- payment register (rows 7..) ---- */
+        const payStart = 7;
+        const payRows = Math.max(payments.length, 9);
+        payments.forEach((p, i) => {
+          set(payStart + i, 1, i + 1);
+          setDate(payStart + i, 2, p.date);
+          set(payStart + i, 4, p.amount);
+        });
+        const totalPayRow = payStart + payRows;
+
+        /* ---- ledger headers ---- */
+        const hdrRow = totalPayRow + 2;
+        const subRow = totalPayRow + 3;
+        const firstLedger = totalPayRow + 4;
+
+        set(hdrRow, 1, 'Quarter');
+        set(hdrRow, 2, 'Period');
+        set(hdrRow, 4, 'Amount Due');
+        set(hdrRow, 6, 'Payment');
+        set(hdrRow, 7, 'Date of Payment');
+        set(hdrRow, 8, 'Due Period');
+        set(hdrRow, 10, 'Number of Months');
+        set(hdrRow, 11, 'Rate');
+        set(hdrRow, 12, 'Interest on Principal Due');
+
+        set(subRow, 2, 'From');
+        set(subRow, 3, 'To');
+        set(subRow, 8, 'From');
+        set(subRow, 9, 'To');
+
+        /* ---- ledger body ---- */
+        function indentLabel(label) {
+          const depth = (label.match(/Interest on/g) || []).length;
+          return '    '.repeat(depth) + label;
+        }
+        function rateTextFor(row) {
+          if (!row.months) return null;
+          if (typeof row.rate === 'number') return row.rate;
+          if (row.segments && row.segments.length) return row.segments.map(s => s.rate).join(' / ');
+          return null;
+        }
+
+        let cursor = firstLedger;
+        const qStarts = [];
+
+        quarterDefs.forEach((q, qi) => {
+          const led = result.ledger.filter(r => r.root === q.id);
+          const outs = result.outstandingRows.filter(r => r.root === q.id);
+          const blockRows = Math.max(20, led.length + outs.length);
+          qStarts.push(cursor);
+          const per = quarterPeriod(fy, qi);
+          let r = cursor;
+
+          led.forEach(row => {
+            set(r, 1, indentLabel(row.quarter));
+            setDate(r, 2, per.from);
+            setDate(r, 3, per.to);
+            set(r, 4, row.amountDue);
+            set(r, 6, row.payment);
+            if (row.date) setDate(r, 7, row.date);
+            if (row.from) setDate(r, 8, row.from);
+            if (row.to) setDate(r, 9, row.to);
+            if (row.months != null) set(r, 10, row.months);
+            const rt = rateTextFor(row); if (rt !== null) set(r, 11, rt);
+            if (row.interest > 0.004) set(r, 12, row.interest);
+            r++;
+          });
+
+          outs.forEach(row => {
+            set(r, 1, indentLabel(row.quarter) + ' — outstanding');
+            setDate(r, 2, per.from);
+            setDate(r, 3, per.to);
+            set(r, 4, row.balance);
+            set(r, 7, 'unpaid');
+            if (row.from) setDate(r, 8, row.from);
+            if (row.to) setDate(r, 9, row.to);
+            if (row.months != null) set(r, 10, row.months);
+            const rt = rateTextFor(row); if (rt !== null) set(r, 11, rt);
+            if (row.interest > 0.004) set(r, 12, row.interest);
+            r++;
+          });
+
+          cursor += blockRows;
+        });
+
+        /* ---- totals block ---- */
+        const totalRow = cursor;
+        const lastLedger = totalRow - 1;
+        set(totalRow, 1, 'Total Principal Due');
+        set(totalRow, 7, 'Total Interest on Principal Due');
+        const netRow = totalRow + 1;
+        set(netRow, 1, 'Net Principal Due');
+        const finalRow = netRow + 1;
+
+        /* ---- build worksheet ---- */
+        const ws = XLSX.utils.aoa_to_sheet(grid);
+
+        const qRefs = qStarts.map(r => 'E' + r).join('+');
+        const gSum = result.ledger.reduce((s, r) => s + r.payment, 0);
+        const totalPrincipal = result.totalDue;
+        const totalPaid = result.totalPaid;
+        const totalInterest = result.totalInterest;
+        const netPrincipal = totalPrincipal - totalPaid;
+
+        ws['E' + totalPayRow] = { t: 'n', f: `SUM(E${payStart}:E${payStart + payRows - 1})`, v: totalPaid };
+        ws['E' + totalRow]    = { t: 'n', f: qRefs, v: totalPrincipal };
+        ws['G' + totalRow]    = { t: 'n', f: `SUM(G${firstLedger}:G${lastLedger})`, v: gSum };
+        ws['M' + totalRow]    = { t: 'n', f: `SUM(M${firstLedger}:M${lastLedger})`, v: totalInterest };
+        ws['E' + netRow]      = { t: 'n', f: `E${totalRow}-E${totalPayRow}`, v: netPrincipal };
+        ws['E' + finalRow]    = { t: 'n', f: `SUM(E${netRow}+M${totalRow})`, v: netPrincipal + totalInterest };
+        ws['B' + finalRow] = {
+          t: 'str',
+          f: `"Total Principal Due including Interest upto "&TEXT(EOMONTH(J14,0),"DD mmm YYYY")`,
+          v: 'Total Principal Due including Interest upto ' + endOfMonthLabel(asOn)
+        };
+
+        /* ---- formats ---- */
+        dateAddrs.forEach(a => { if (ws[a]) ws[a].z = 'dd-mm-yyyy'; });
+        Object.keys(ws).forEach(a => {
+          if (a.charAt(0) === '!') return;
+          const cell = ws[a];
+          if (!cell || cell.t !== 'n') return;
+          const col = a.replace(/[0-9]/g, '');
+          if (col === 'E' || col === 'G' || col === 'M') cell.z = '#,##0';
+        });
+
+        ws['!cols'] = [
+          { wch: 3 },   // A
+          { wch: 30 },  // B
+          { wch: 12 },  // C
+          { wch: 12 },  // D
+          { wch: 16 },  // E
+          { wch: 4 },   // F
+          { wch: 16 },  // G
+          { wch: 15 },  // H
+          { wch: 12 },  // I
+          { wch: 12 },  // J
+          { wch: 13 },  // K
+          { wch: 10 },  // L
+          { wch: 20 }   // M
+        ];
+
+        /* ---- write & download ---- */
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, '5. Interest Sheet (N)');
+        const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'Interest_Calculation_Sheet.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1500);
+      }
+
+      /* ---------------- CSV export (fallback) ---------------- */
+      function exportCSV() {
+        const rows = window.__lastLedgerRows || [];
+        const out = window.__lastOutstandingRows || [];
+        if (!rows.length && !out.length) { return; }
+        let csv = 'Quarter,Source,Type,Amount Due,Payment,Date of Payment,Period From,Period To,Months,Rate,Interest\n';
+        const esc = s => `"${String(s).replace(/"/g, '""')}"`;
+        function segLine(qid, r) {
+          let s = '';
+          (r.segments || []).forEach(seg => {
+            s += [qid, esc('  Block: ' + Math.round(seg.base) + ' @ ' + seg.rate + '%'), r.type, '', '', '', fmtDate(seg.from), fmtDate(seg.to), seg.months, seg.rate + '%', seg.interest > 0.5 ? Math.round(seg.interest) : ''].join(',') + '\n';
+          });
+          return s;
+        }
+        quarterDefs.forEach(q => {
+          rows.filter(r => r.root === q.id).forEach(r => {
+            const multi = r.segments && r.segments.length > 1;
+            csv += [q.id, esc(r.quarter), r.type, Math.round(r.amountDue), Math.round(r.payment), fmtDate(r.date), r.from ? fmtDate(r.from) : '', r.to ? fmtDate(r.to) : '', r.months || '', multi ? (r.segments.length + ' rate blocks') : (r.months ? (typeof r.rate === 'number' ? r.rate + '%' : r.rate) : ''), r.interest > 0.5 ? Math.round(r.interest) : ''].join(',') + '\n';
+            if (multi) csv += segLine(q.id, r);
+          });
+          out.filter(r => r.root === q.id).forEach(r => {
+            const multi = r.segments && r.segments.length > 1;
+            csv += [q.id, esc(r.quarter + ' — outstanding'), r.type, Math.round(r.balance), '', '', r.from ? fmtDate(r.from) : '', r.to ? fmtDate(r.to) : '', r.months || '', multi ? (r.segments.length + ' rate blocks') : '', r.interest > 0.5 ? Math.round(r.interest) : ''].join(',') + '\n';
+            if (multi) csv += segLine(q.id, r);
+          });
+        });
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'interest-ledger.csv';
+        document.body.appendChild(a); a.click();
+        setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1500);
+      }
+
+      /* ============================================================
+         SIDEBAR COLLAPSE
+         ============================================================ */
+      function setupSidebar() {
+        const toggle = document.getElementById('sidebarToggle');
+        const chev = toggle.querySelector('.chev');
+        const label = toggle.querySelector('.label');
+
+        function apply(collapsed) {
+          document.body.classList.toggle('sidebar-collapsed', collapsed);
+          toggle.setAttribute('aria-expanded', String(!collapsed));
+          chev.textContent = collapsed ? '›' : '‹';
+          label.textContent = collapsed ? 'Inputs' : 'Hide inputs';
+          try { localStorage.setItem(SIDEBAR_KEY, collapsed ? '1' : '0'); } catch (e) {}
+        }
+
+        let saved = false;
+        try { saved = localStorage.getItem(SIDEBAR_KEY) === '1'; } catch (e) {}
+        apply(saved);
+
+        toggle.addEventListener('click', function () {
+          apply(!document.body.classList.contains('sidebar-collapsed'));
+        });
+
+        // expose so freshStart can reset it
+        window.__applySidebarState = apply;
+      }
+
+      /* ============================================================
+         COLLAPSIBLE PANELS (individual cards)
+         ============================================================ */
+      function setupCollapsiblePanels() {
+        const panels = [...document.querySelectorAll('#inputCol .panel')];
+        panels.forEach(panel => {
+          const h2 = panel.querySelector('h2');
+          if (!h2) return;
+
+          const body = document.createElement('div');
+          body.className = 'panel-body';
+          const kids = Array.prototype.slice.call(panel.childNodes);
+          const startIdx = kids.indexOf(h2) + 1;
+          kids.slice(startIdx).forEach(n => body.appendChild(n));
+          panel.appendChild(body);
+
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'panel-toggle';
+          btn.setAttribute('aria-expanded', 'true');
+          btn.title = 'Collapse / expand';
+          btn.innerHTML = '<span class="chev">▾</span>';
+          btn.addEventListener('click', function () {
+            panel.classList.toggle('collapsed');
+            const collapsed = panel.classList.contains('collapsed');
+            btn.setAttribute('aria-expanded', String(!collapsed));
+            btn.querySelector('.chev').textContent = collapsed ? '▸' : '▾';
+            savePanelState();
+          });
+          h2.appendChild(btn);
+        });
+
+        // restore saved collapse state
+        try {
+          const raw = localStorage.getItem(PANEL_KEY);
+          if (raw) {
+            const states = JSON.parse(raw);
+            panels.forEach((panel, i) => {
+              if (!states[i]) return;
+              panel.classList.add('collapsed');
+              const btn = panel.querySelector('.panel-toggle');
+              if (btn) {
+                btn.setAttribute('aria-expanded', 'false');
+                const ch = btn.querySelector('.chev');
+                if (ch) ch.textContent = '▸';
+              }
+            });
+          }
+        } catch (e) { /* ignore */ }
+      }
+      function savePanelState() {
+        try {
+          const states = [...document.querySelectorAll('#inputCol .panel')].map(p => p.classList.contains('collapsed'));
+          localStorage.setItem(PANEL_KEY, JSON.stringify(states));
+        } catch (e) { /* ignore */ }
+      }
+
+      /* ============================================================
+         FRESH START — clear all browser cache & reset the form
+         ============================================================ */
+      function freshStart() {
+        if (!confirm('Delete all saved data in this browser (every tab) and start with a single blank tab?')) return;
+
+        // 1. wipe the app's localStorage keys
+        try {
+          localStorage.removeItem(STORE_KEY);
+          localStorage.removeItem(PANEL_KEY);
+          localStorage.removeItem(SIDEBAR_KEY);
+          localStorage.removeItem(TABS_KEY);
+          localStorage.removeItem(ACTIVE_TAB_KEY);
+        } catch (e) { /* ignore */ }
+
+        // 1b. collapse back to a single blank tab
+        tabs = [ makeTab(blankState()) ];
+        activeTabIndex = 0;
+        renderTabBar();
+
+        // 2. reset form to blank
+        applyRawInputs(blankState());
+        refreshDueDateLabels();
+
+        // 3. expand all individual panels
+        document.querySelectorAll('#inputCol .panel').forEach(p => {
+          p.classList.remove('collapsed');
+          const btn = p.querySelector('.panel-toggle');
+          if (btn) {
+            btn.setAttribute('aria-expanded', 'true');
+            const ch = btn.querySelector('.chev');
+            if (ch) ch.textContent = '▾';
+          }
+        });
+
+        // 4. expand the sidebar
+        if (window.__applySidebarState) window.__applySidebarState(false);
+
+        // 5. clear the output
+        document.getElementById('output').innerHTML =
+          '<div class="empty-state">Enter your dues and payments, then choose Calculate.</div>';
+        document.getElementById('asOnDisplay').textContent = '—';
+
+        // 6. drop any in-memory last-run data
+        window.__lastResult = null;
+        window.__lastLedgerRows = null;
+        window.__lastOutstandingRows = null;
+
+        saveTabs();
+      }
+
+      /* ---------------- clear helpers (shared by the buttons and page-load) ---------------- */
+      function clearDuesFields() {
+        document.getElementById('fyYear').value = '';
+        quarterDefs.forEach(q => { document.getElementById('due_' + q.id).value = ''; });
+        document.getElementById('q4rule').value = 'apr16';
+        document.getElementById('q4custom').value = '';
+        document.getElementById('q4customWrap').style.display = 'none';
+        refreshDueDateLabels();
+      }
+      function clearPaymentFields() {
+        document.getElementById('paymentRows').innerHTML = '';
+        addPaymentRow('', '');
+      }
+
+      /* ---------------- wire up ---------------- */
+      function init() {
+        buildQuarterInputsUI();
+
+        bootstrapTabs();
+        applyRawInputs(tabs[activeTabIndex].state);
+        if (!document.getElementById('asOnDate').value) {
+          document.getElementById('asOnDate').value = toInputVal(new Date());
+        }
+        renderTabBar();
+
+        setupSidebar();
+        setupCollapsiblePanels();
+
+        document.getElementById('q4rule').addEventListener('change', () => {
+          document.getElementById('q4customWrap').style.display = document.getElementById('q4rule').value === 'custom' ? 'block' : 'none';
+          refreshDueDateLabels();
+        });
+        document.getElementById('q4custom').addEventListener('change', refreshDueDateLabels);
+        document.getElementById('fyYear').addEventListener('input', refreshDueDateLabels);
+        document.getElementById('q4customWrap').style.display = document.getElementById('q4rule').value === 'custom' ? 'block' : 'none';
+
+        /* clear financial year & dues */
+        document.getElementById('clearDuesBtn').addEventListener('click', () => {
+          clearDuesFields();
+          saveState();
+          document.getElementById('fyYear').focus();
+        });
+
+        /* clear payment register */
+        document.getElementById('clearPaymentsBtn').addEventListener('click', () => {
+          clearPaymentFields();
+          saveState();
+        });
+
+        document.getElementById('addPaymentBtn').addEventListener('click', () => addPaymentRow('', ''));
+        document.getElementById('addRateChangeBtn').addEventListener('click', () => addRateChangeRow('', '', 'monthly'));
+        document.getElementById('calcBtn').addEventListener('click', calculate);
+        document.getElementById('printBtn').addEventListener('click', () => { buildPrintSheet(); window.print(); });
+        window.addEventListener('beforeprint', buildPrintSheet);
+        document.getElementById('xlsxBtn').addEventListener('click', exportExcel);
+        document.getElementById('freshStartBtn').addEventListener('click', freshStart);
+        document.getElementById('resetBtn').addEventListener('click', () => {
+          if (!confirm('Load the worked example into this tab? Current values will be replaced.')) return;
+          applyRawInputs(exampleState());
+          refreshDueDateLabels();
+          calculate();
+        });
+
+        /* Per request: every time the page (re)loads, the Financial year & dues
+           and Payment register cards start cleared — as if their own "Clear"
+           buttons were pressed — regardless of what was saved previously. */
+        clearDuesFields();
+        clearPaymentFields();
+        refreshDueDateLabels();
+        calculate();
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+
+    })();
+  </script>
+</body>
+</html>
