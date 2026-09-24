@@ -7,10 +7,11 @@
   <style>
     /* ---------- design tokens ---------- */
     :root {
+      /* Off-white defaults (light theme is the base) */
       --ink: #182233;
       --ink-soft: #4b5768;
-      --paper: #ECEEEA;
-      --paper-raised: #F7F8F5;
+      --paper: #F5F3EE;              /* off-white page background */
+      --paper-raised: #FBFAF6;       /* slightly warmer card surface */
       --line: #CBD0C7;
       --line-soft: #DDE0D9;
       --brass: #9C7327;
@@ -81,6 +82,11 @@
       align-items: center;
       justify-content: center;
       animation: logoPulse 1.8s ease-in-out infinite;
+      animation-play-state: paused;   /* start paused — begins after logo loads */
+    }
+
+    #loadingScreen.logo-ready .logo-wrap {
+      animation-play-state: running;
     }
 
     #loadingScreen .logo-wrap img {
@@ -88,6 +94,12 @@
       height: 100%;
       object-fit: contain;
       display: block;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    #loadingScreen.logo-ready .logo-wrap img {
+      opacity: 1;
     }
 
     @keyframes logoPulse {
@@ -103,6 +115,12 @@
       background: var(--line-soft);
       border-radius: 3px;
       overflow: hidden;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    #loadingScreen.logo-ready .loading-bar {
+      opacity: 1;
     }
 
     #loadingScreen .loading-bar span {
@@ -111,6 +129,10 @@
       width: 0%;
       background: var(--brass);
       border-radius: 3px;
+      /* Animation is applied only after .logo-ready — starts from 0 width */
+    }
+
+    #loadingScreen.logo-ready .loading-bar span {
       animation: loadProgress 1.4s ease-in-out forwards;
     }
 
@@ -127,6 +149,11 @@
       text-transform: uppercase;
       color: var(--ink-soft);
       font-weight: 500;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    #loadingScreen.logo-ready .loading-label {
       opacity: 0.7;
     }
 
@@ -193,7 +220,7 @@
       font-weight: 500;
     }
 
-    /* Logo pinned to top-right of the page */
+    /* Logo + toggle pinned to top-right of the page */
     .masthead .logo-badge {
       display: flex;
       align-items: center;
@@ -226,6 +253,51 @@
       .masthead .brand h1 { font-size: 26px; }
       .masthead .brand p { font-size: 13px; }
       .masthead .logo-badge img { width: 52px; height: 52px; }
+    }
+
+    /* ---------- theme toggle button ---------- */
+    .theme-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 1px solid var(--line);
+      background: var(--paper-raised);
+      color: var(--ink-soft);
+      cursor: pointer;
+      padding: 0;
+      margin-right: 12px;
+      flex-shrink: 0;
+      transition: var(--transition), transform 0.2s ease;
+    }
+
+    .theme-toggle:hover {
+      border-color: var(--brass);
+      color: var(--brass);
+      transform: rotate(15deg);
+    }
+
+    .theme-toggle svg {
+      width: 18px;
+      height: 18px;
+      display: block;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* show the correct icon depending on theme */
+    .theme-toggle .icon-sun { display: none; }
+    .theme-toggle .icon-moon { display: block; }
+    :root[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+    :root[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+
+    @media (max-width: 640px) {
+      .theme-toggle { width: 34px; height: 34px; margin-right: 8px; }
     }
 
     /* ---------- cards grid ---------- */
@@ -356,11 +428,12 @@
       --shadow-card: 0 1px 3px rgba(0,0,0,0.4);
     }
 
+    /* Explicit light override — the off-white default */
     :root[data-theme="light"] {
       --ink: #182233;
       --ink-soft: #4b5768;
-      --paper: #ECEEEA;
-      --paper-raised: #F7F8F5;
+      --paper: #F5F3EE;
+      --paper-raised: #FBFAF6;
       --line: #CBD0C7;
       --line-soft: #DDE0D9;
       --brass: #9C7327;
@@ -373,35 +446,25 @@
       --shadow-card: 0 1px 3px rgba(0,0,0,0.03);
     }
 
-    @media (prefers-color-scheme: dark) {
-      :root:not([data-theme]) {
-        --ink: #E9ECE6;
-        --ink-soft: #AEB6A8;
-        --paper: #161B15;
-        --paper-raised: #1E241C;
-        --line: #333B30;
-        --line-soft: #2A3128;
-        --brass: #D4A94B;
-        --brass-soft: #332A16;
-        --teal: #7FBDA9;
-        --teal-soft: #1B2C26;
-        --red: #D98A7C;
-        --red-soft: #3A211D;
-        --green: #6FCF77;
-        --shadow-card: 0 1px 3px rgba(0,0,0,0.4);
-      }
-    }
+    /* Auto-dark is intentionally disabled — the landing page is off-white by
+       default unless the user explicitly picks dark with the toggle. */
 
     @media (prefers-reduced-motion: reduce) {
       #loadingScreen,
       #loadingScreen .logo-wrap,
       #loadingScreen .loading-bar span,
+      #loadingScreen .logo-wrap img,
       #app,
-      .card {
+      .card,
+      .theme-toggle {
         animation: none !important;
         transition: none !important;
       }
       #loadingScreen.hidden { opacity: 0; transform: none; }
+      .theme-toggle:hover { transform: none; }
+      #loadingScreen .logo-wrap img,
+      #loadingScreen .loading-bar,
+      #loadingScreen .loading-label { opacity: 1; }
     }
   </style>
 </head>
@@ -411,7 +474,7 @@
   <div id="loadingScreen" role="status" aria-label="Loading SURA">
     <div class="logo-wrap">
       <!-- YOUR LOGO — save the provided image as assets/sura-logo.png -->
-      <img src="assets/sura-logo.png" alt="SURA — Spectrum Usage & Revenue Assessment logo" loading="eager">
+      <img id="loadingLogo" src="assets/sura-logo.png" alt="SURA — Spectrum Usage & Revenue Assessment logo" loading="eager">
     </div>
     <div class="loading-bar"><span></span></div>
     <div class="loading-label">Loading assessment modules…</div>
@@ -428,8 +491,25 @@
           <h1>SURA</h1>
           <p>Spectrum Usage &amp; Revenue Assessment — unified calculation suite</p>
         </div>
-        <!-- Logo pinned to top-right -->
         <div class="logo-badge">
+          <!-- Theme toggle: sun icon in dark mode, moon icon in light mode -->
+          <button type="button" class="theme-toggle" id="themeToggle" aria-label="Toggle light / dark mode" title="Toggle light / dark mode">
+            <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="4"></circle>
+              <line x1="12" y1="2" x2="12" y2="4"></line>
+              <line x1="12" y1="20" x2="12" y2="22"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="2" y1="12" x2="4" y2="12"></line>
+              <line x1="20" y1="12" x2="22" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+            <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          </button>
+
           <img src="assets/sura-logo.png" alt="SURA logo">
           <div class="asof">
             Assessment suite<br><b>v1.0</b>
@@ -437,31 +517,31 @@
         </div>
       </header>
 
-      <!-- ========== SEVEN CARDS ========== -->
+      <!-- ========== SEVEN CARDS — all open in a new tab/window ========== -->
       <div class="cards-grid" id="cardsGrid">
 
-        <a class="card" href="pages/agr-suc.html" data-page="agr-suc">
+        <a class="card" href="pages/agr-suc.html" target="_blank" rel="noopener noreferrer" data-page="agr-suc">
           <span class="card-num">01</span>
           <h3>Calculation of AGR for SUC</h3>
           <p>Compute Adjusted Gross Revenue for Spectrum Usage Charges with quarter-wise detail and statutory adjustments.</p>
           <span class="card-arrow">→</span>
         </a>
 
-        <a class="card" href="pages/spectrum-details.html" data-page="spectrum-details">
+        <a class="card" href="pages/spectrum-details.html" target="_blank" rel="noopener noreferrer" data-page="spectrum-details">
           <span class="card-num">02</span>
           <h3>Spectrum Details &amp; SUC Rate Calculation</h3>
           <p>Enter spectrum holdings, applicable SUC rates, and derive the weighted rate for each technology and circle.</p>
           <span class="card-arrow">→</span>
         </a>
 
-        <a class="card" href="pages/presumptive-agr.html" data-page="presumptive-agr">
+        <a class="card" href="pages/presumptive-agr.html" target="_blank" rel="noopener noreferrer" data-page="presumptive-agr">
           <span class="card-num">03</span>
           <h3>Presumptive AGR &amp; Floor SUC Calculation</h3>
           <p>Apply the presumptive AGR framework and compute the floor SUC liability for the financial year.</p>
           <span class="card-arrow">→</span>
         </a>
 
-        <a class="card" href="pages/payment-details.html" data-page="payment-details">
+        <a class="card" href="pages/payment-details.html" target="_blank" rel="noopener noreferrer" data-page="payment-details">
           <span class="card-num">04</span>
           <h3>Payment Details &amp; Revenue Share Due Calculation</h3>
           <p>Record payments, reconcile against dues, and calculate the revenue share payable with interest adjustments.</p>
@@ -469,7 +549,7 @@
         </a>
 
         <!-- 05 — linked to the provided interest calculator, renamed to interest-principal.html -->
-        <a class="card" href="pages/interest-principal.html" data-page="interest-principal">
+        <a class="card" href="pages/interest-principal.html" target="_blank" rel="noopener noreferrer" data-page="interest-principal">
           <span class="card-num">05</span>
           <h3>Calculation of Interest on Principal</h3>
           <p>Interest on principal with FIFO allocation, compounding, rate schedules, moratorium handling, and export.</p>
@@ -477,14 +557,14 @@
           <span class="card-arrow">→</span>
         </a>
 
-        <a class="card" href="pages/interest-penalty.html" data-page="interest-penalty">
+        <a class="card" href="pages/interest-penalty.html" target="_blank" rel="noopener noreferrer" data-page="interest-penalty">
           <span class="card-num">06</span>
           <h3>Calculation of Interest on Penalty</h3>
           <p>Compute interest on penalty amounts with the same statutory engine, rate changes, and payment waterfall.</p>
           <span class="card-arrow">→</span>
         </a>
 
-        <a class="card" href="pages/summary.html" data-page="summary">
+        <a class="card" href="pages/summary.html" target="_blank" rel="noopener noreferrer" data-page="summary">
           <span class="card-num">07</span>
           <h3>Summary</h3>
           <p>Consolidated view of AGR, SUC, payments, interest on principal and penalty — with print and export options.</p>
@@ -505,42 +585,46 @@
       'use strict';
 
       /* ============================================================
-         THEME INIT (light/dark, persisted)
+         THEME INIT (off-white default, toggle, persisted)
          ============================================================ */
       (function themeInit() {
         var root = document.documentElement;
+        var toggle = document.getElementById('themeToggle');
+
+        function apply(theme) {
+          root.setAttribute('data-theme', theme);
+        }
+
+        // Off-white is the DEFAULT. We only honor a saved choice, and we do
+        // NOT fall back to the OS preference for this landing page.
         var saved = null;
         try { saved = localStorage.getItem('sura_theme'); } catch (e) {}
+        apply(saved === 'dark' ? 'dark' : 'light');
 
-        var startTheme;
-        if (saved === 'dark' || saved === 'light') {
-          startTheme = saved;
-        } else {
-          startTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        if (toggle) {
+          toggle.addEventListener('click', function() {
+            var current = root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+            var next = current === 'dark' ? 'light' : 'dark';
+            apply(next);
+            try { localStorage.setItem('sura_theme', next); } catch (e) {}
+          });
         }
-        root.setAttribute('data-theme', startTheme);
-
-        var mq = window.matchMedia('(prefers-color-scheme: dark)');
-        var mqListener = function(e) {
-          var hasSaved = null;
-          try { hasSaved = localStorage.getItem('sura_theme'); } catch (err) {}
-          if (!hasSaved) {
-            root.setAttribute('data-theme', e.matches ? 'dark' : 'light');
-          }
-        };
-        if (mq.addEventListener) mq.addEventListener('change', mqListener);
-        else if (mq.addListener) mq.addListener(mqListener);
       })();
 
       /* ============================================================
-         LOADING SCREEN → FADE OUT → SHOW APP
+         LOADING SEQUENCE
+         Order: logo loads → loading bar animates → app fades in.
          ============================================================ */
       (function loadingSequence() {
         var loadingScreen = document.getElementById('loadingScreen');
-        var app = document.getElementById('app');
+        var loadingLogo   = document.getElementById('loadingLogo');
+        var app           = document.getElementById('app');
 
-        var MIN_LOAD_TIME = 1400;
+        var MIN_BAR_TIME   = 1400;   // how long the loading bar animates
+        var MIN_LOGO_TIME  = 250;    // give the logo a beat to render before bar
+        var logoStart      = Date.now();
 
+        // Reveal the app: fade out loading screen, fade in app
         function revealApp() {
           loadingScreen.classList.add('hidden');
           app.classList.add('visible');
@@ -552,18 +636,39 @@
           }, 700);
         }
 
-        if (document.readyState === 'complete') {
-          setTimeout(revealApp, MIN_LOAD_TIME);
-        } else {
-          window.addEventListener('load', function() {
-            setTimeout(revealApp, MIN_LOAD_TIME);
-          });
+        // Step 1 — wait for logo to actually load (or fail), then start bar
+        function startBarAndReveal() {
+          var elapsed = Date.now() - logoStart;
+          var holdForLogo = Math.max(0, MIN_LOGO_TIME - elapsed);
+
           setTimeout(function() {
-            if (!app.classList.contains('visible')) {
-              revealApp();
-            }
-          }, 6000);
+            // Step 2 — mark the screen "logo-ready" → triggers pulse + bar animation
+            loadingScreen.classList.add('logo-ready');
+
+            // Step 3 — after the bar finishes, fade in the app
+            setTimeout(revealApp, MIN_BAR_TIME);
+          }, holdForLogo);
         }
+
+        if (loadingLogo) {
+          if (loadingLogo.complete && loadingLogo.naturalWidth > 0) {
+            // Already cached and painted
+            startBarAndReveal();
+          } else {
+            loadingLogo.addEventListener('load', startBarAndReveal, { once: true });
+            loadingLogo.addEventListener('error', startBarAndReveal, { once: true });
+          }
+        } else {
+          startBarAndReveal();
+        }
+
+        // Safety net: never keep the loading screen up for more than 7s
+        setTimeout(function() {
+          if (!app.classList.contains('visible')) {
+            loadingScreen.classList.add('logo-ready');
+            revealApp();
+          }
+        }, 7000);
       })();
 
     })();
