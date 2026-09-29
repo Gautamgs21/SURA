@@ -685,6 +685,23 @@
       font-size: 7pt;
     }
 
+    /* Isolated banner heading inside the print sheet */
+    .ps-banner {
+      border: 1.25px solid #000;
+      border-radius: 2px;
+      background: #ddd;
+      text-align: center;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 9pt;
+      padding: 5px 8px;
+      margin: 8px 0 5px;
+      color: #000;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
     /* Tables must not be sliced across a page boundary */
     .ps-ledger-card { break-inside: avoid; page-break-inside: avoid; }
     .ps-footer {
@@ -709,6 +726,9 @@
       #printSheet table.ps-mini tr.ps-titlerow td {
         background: #ddd !important;
       }
+      #printSheet .ps-banner {
+        background: #ddd !important;
+      }
     }
   </style>
 </head>
@@ -718,7 +738,7 @@
     <header class="masthead">
       <div class="title-block">
         <div class="eyebrow">SUC ASSESSMENT</div>
-        <h1>PART VII: PAYMENT DETAILS AND REVENUE SHARE DUE CALCULATION</h1>
+        <h1>PART VII: SUMMARY OF SUC ASSESSMENT</h1>
       </div>
       <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
         <button class="ghost no-print" id="freshStartBtn" title="Delete browser cache and start with a blank form" style="padding:8px 14px; font-size:12.5px;">RESET ALL</button>
@@ -1124,7 +1144,7 @@
       var s = state;
       var h = '<div class="doc">';
 
-      h += '<h2 class="doc-title">Part VII: Payment Details and Revenue Share Due Calculation</h2>';
+      h += '<h2 class="doc-title">PART VII: SUMMARY OF SUC ASSESSMENT</h2>';
 
       /* ---- (i) Basic Details ---- */
       h += '<table class="doc-table meta-table"><tbody>';
@@ -1589,7 +1609,7 @@
       var html = '';
       html += '<div class="ps-header">' +
         '<div><div class="ps-eyebrow">SUC Assessment</div>' +
-        '<h1 class="ps-title">Part VII: Payment Details and Revenue Share Due Calculation</h1></div>' +
+        '<h1 class="ps-title">PART VII: SUMMARY OF SUC ASSESSMENT</h1></div>' +
         '<div class="ps-asof">Dues computed upto<span>' + longDateStr() + '</span></div>' +
         '</div>';
 
@@ -1608,6 +1628,9 @@
       /* (ii) AGR Summary */
       html += '<div class="ps-row cols-1"><div class="ps-card">' + psAgrTable() + '</div></div>';
 
+      /* Banner: SUC Dues as per CCA, Kerala */
+      html += '<div class="ps-banner">SUC Dues as per CCA, Kerala (Disputed + Undisputed)</div>';
+
       /* (iii) SUC Rates — Combined */
       html += '<div class="ps-row cols-1"><div class="ps-card ps-ledger-card">' +
               psRateTable(state.rateCombined, '(iii) SUC Rates') + '</div></div>';
@@ -1616,6 +1639,9 @@
       html += '<div class="ps-row cols-1"><div class="ps-card ps-ledger-card">' +
               psDuesTable(all.combined, { title: '(iv) Summary of SUC Dues' }) + '</div></div>';
 
+      /* Banner: UNDISPUTED */
+      html += '<div class="ps-banner">UNDISPUTED SUC DUES</div>';
+
       /* (v) SUC Rates — Undisputed */
       html += '<div class="ps-row cols-1"><div class="ps-card ps-ledger-card">' +
               psRateTable(state.rateUndisputed, '(v) SUC Rates') + '</div></div>';
@@ -1623,6 +1649,9 @@
       /* (vi) Summary of SUC Dues — Undisputed */
       html += '<div class="ps-row cols-1"><div class="ps-card ps-ledger-card">' +
               psDuesTable(all.undisputed, { title: '(vi) Summary of SUC Dues' }) + '</div></div>';
+
+      /* Banner: DISPUTED */
+      html += '<div class="ps-banner">DISPUTED DUES</div>';
 
       /* (vii) Summary of SUC Dues — Disputed */
       html += '<div class="ps-row cols-1"><div class="ps-card ps-ledger-card">' +
