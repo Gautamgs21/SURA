@@ -1,0 +1,2051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Interest on Penalty Calculator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Aptos+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ---------- design tokens ---------- */
+    :root {
+      --ink: #182233;
+      --ink-soft: #4b5768;
+      --paper: #ECEEEA;
+      --paper-raised: #F7F8F5;
+      --line: #CBD0C7;
+      --line-soft: #DDE0D9;
+      --brass: #9C7327;
+      --brass-soft: #EFE3C8;
+      --teal: #2C6357;
+      --teal-soft: #DEEAE5;
+      --red: #9C3B31;
+      --red-soft: #F3DEDA;
+      --green: #2E7D32;
+      --font-sans: "Aptos Display", -apple-system, "Segoe UI", sans-serif;
+      --font-serif: "Aptos Display", -apple-system, "Segoe UI", sans-serif;
+      --font-mono: "Aptos Display", -apple-system, "Segoe UI", sans-serif;
+      --radius: 4px;
+      --shadow-card: 0 1px 3px rgba(0,0,0,0.03);
+      --transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      box-sizing: border-box;
+    }
+    :root[data-theme="dark"] {
+      --ink: #E9ECE6; --ink-soft: #AEB6A8; --paper: #161B15; --paper-raised: #1E241C;
+      --line: #333B30; --line-soft: #2A3128; --brass: #D4A94B; --brass-soft: #332A16;
+      --teal: #7FBDA9; --teal-soft: #1B2C26; --red: #D98A7C; --red-soft: #3A211D;
+      --green: #6FCF77; --shadow-card: 0 1px 3px rgba(0,0,0,0.4);
+    }
+    :root[data-theme="light"] {
+      --ink: #182233; --ink-soft: #4b5768; --paper: #ECEEEA; --paper-raised: #F7F8F5;
+      --line: #CBD0C7; --line-soft: #DDE0D9; --brass: #9C7327; --brass-soft: #EFE3C8;
+      --teal: #2C6357; --teal-soft: #DEEAE5; --red: #9C3B31; --red-soft: #F3DEDA;
+      --green: #2E7D32; --shadow-card: 0 1px 3px rgba(0,0,0,0.03);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme]) {
+        --ink: #E9ECE6; --ink-soft: #AEB6A8; --paper: #161B15; --paper-raised: #1E241C;
+        --line: #333B30; --line-soft: #2A3128; --brass: #D4A94B; --brass-soft: #332A16;
+        --teal: #7FBDA9; --teal-soft: #1B2C26; --red: #D98A7C; --red-soft: #3A211D;
+        --green: #6FCF77; --shadow-card: 0 1px 3px rgba(0,0,0,0.4);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+    html, body { height: 100%; }
+    body {
+      margin: 0; background: var(--paper); color: var(--ink);
+      font-family: var(--font-sans); font-size: 15px; line-height: 1.5;
+      -webkit-font-smoothing: antialiased; transition: var(--transition);
+    }
+
+    .wrap { max-width: 1600px; margin: 0 auto; padding: 28px 32px 70px; transition: var(--transition); }
+    @media (max-width: 1200px) { .wrap { padding: 24px 22px 60px; } }
+    @media (max-width: 760px) { .wrap { padding: 16px 14px 50px; } }
+
+    header.masthead {
+      border-bottom: 2px solid var(--ink); padding-bottom: 18px; margin-bottom: 28px;
+      display: flex; justify-content: space-between; align-items: flex-end;
+      gap: 20px; flex-wrap: wrap;
+    }
+    header.masthead .title-block { max-width: 720px; }
+    header.masthead .eyebrow {
+      font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.04em;
+      color: var(--brass); margin-bottom: 8px; text-transform: uppercase;
+    }
+    header.masthead h1 {
+      font-family: var(--font-serif); font-weight: 600; font-size: 30px;
+      margin: 0 0 6px; line-height: 1.15;
+    }
+    header.masthead .asof {
+      font-family: var(--font-mono); font-size: 12px; color: var(--ink-soft);
+      text-align: right; white-space: nowrap;
+    }
+    header.masthead .asof b { color: var(--ink); font-weight: 600; display: block; font-size: 13px; }
+
+    .theme-toggle {
+      display: flex; gap: 4px; align-items: center; background: var(--paper-raised);
+      border: 1px solid var(--line); border-radius: 40px; padding: 3px;
+      cursor: pointer; user-select: none; flex-shrink: 0; transition: var(--transition);
+    }
+    .theme-toggle button {
+      font-family: var(--font-sans); font-size: 11.5px; padding: 6px 14px; border-radius: 40px;
+      border: none; background: transparent; color: var(--ink-soft); font-weight: 500;
+      letter-spacing: 0.01em; cursor: pointer; transition: var(--transition);
+    }
+    .theme-toggle button.active { background: var(--ink); color: var(--paper-raised); }
+    .theme-toggle button:hover:not(.active) { color: var(--ink); }
+
+    .tabbar {
+      display: flex; align-items: flex-end; gap: 4px; margin: 0 0 18px;
+      padding: 0 0 0 1px; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin;
+    }
+    .tabbar::-webkit-scrollbar { height: 5px; }
+    .tabbar::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+    .tab {
+      display: flex; align-items: center; gap: 8px; padding: 9px 12px 9px 14px;
+      background: var(--paper); border: 1.5px solid var(--ink); border-bottom: 1.5px solid var(--ink);
+      border-radius: 5px 5px 0 0; font-family: var(--font-sans); font-size: 12px;
+      font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--ink-soft);
+      cursor: pointer; white-space: nowrap; user-select: none; flex-shrink: 0;
+      transition: var(--transition); margin-bottom: -1.5px;
+    }
+    .tab:hover { color: var(--ink); background: var(--paper-raised); }
+    .tab.active {
+      background: var(--paper-raised); color: var(--ink); border-bottom-color: var(--paper-raised);
+      position: relative; z-index: 1;
+    }
+    .tab .tab-close {
+      width: 16px; height: 16px; flex-shrink: 0; display: flex; align-items: center;
+      justify-content: center; border-radius: 50%; font-size: 13px; font-weight: 400;
+      line-height: 1; color: var(--ink-soft); text-transform: none;
+    }
+    .tab .tab-close:hover { background: var(--red-soft); color: var(--red); }
+    .tab-add {
+      display: flex; align-items: center; justify-content: center; width: 32px; height: 32px;
+      margin-bottom: -1.5px; border: 1.5px solid var(--ink); border-radius: 5px 5px 0 0;
+      background: var(--paper); color: var(--ink-soft); cursor: pointer; font-size: 16px;
+      font-weight: 600; flex-shrink: 0; transition: var(--transition);
+    }
+    .tab-add:hover { border-color: var(--brass); color: var(--brass); background: var(--paper-raised); }
+    @media (max-width: 760px) {
+      .tabbar { margin-bottom: 14px; }
+      .tab { padding: 8px 10px 8px 12px; font-size: 11px; }
+    }
+
+    .grid {
+      display: grid; grid-template-columns: 400px minmax(0, 1fr); gap: 24px;
+      align-items: start; transition: grid-template-columns 0.3s ease, gap 0.3s ease;
+    }
+    .grid > * { min-width: 0; align-self: start; }
+    #output { min-width: 0; width: 100%; }
+
+    #sidebar { min-width: 0; display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+    #inputCol { min-width: 0; display: flex; flex-direction: column; }
+
+    .sidebar-toggle {
+      width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 9px 10px; background: var(--paper-raised); border: 1px solid var(--line);
+      border-radius: var(--radius); color: var(--ink-soft); cursor: pointer;
+      font-family: var(--font-sans); font-size: 12px; font-weight: 500;
+      letter-spacing: 0.02em; white-space: nowrap; min-height: 36px; transition: var(--transition);
+    }
+    .sidebar-toggle:hover { border-color: var(--brass); color: var(--brass); }
+    .sidebar-toggle .chev { font-size: 15px; line-height: 1; flex-shrink: 0; }
+    .sidebar-toggle .label { font-size: 11.5px; }
+
+    body.sidebar-collapsed .grid { grid-template-columns: 48px minmax(0, 1fr); gap: 14px; }
+    body.sidebar-collapsed #inputCol { display: none; }
+    body.sidebar-collapsed .sidebar-toggle {
+      flex-direction: column; gap: 10px; padding: 12px 4px; min-height: 0;
+    }
+    body.sidebar-collapsed .sidebar-toggle .label {
+      writing-mode: vertical-rl; transform: rotate(180deg); font-size: 10.5px;
+      letter-spacing: 0.16em; text-transform: uppercase;
+    }
+    @media (max-width: 1000px) {
+      .grid { grid-template-columns: 360px minmax(0, 1fr); gap: 18px; }
+      body.sidebar-collapsed .grid { grid-template-columns: 48px minmax(0, 1fr); }
+    }
+    @media (max-width: 760px) {
+      .grid { display: block; }
+      .grid > * { width: 100%; }
+      .grid > #output { margin-top: 16px; }
+      #sidebar { margin-bottom: 16px; }
+      body.sidebar-collapsed .grid { display: block; }
+      body.sidebar-collapsed #inputCol { display: none; }
+      body.sidebar-collapsed .sidebar-toggle { flex-direction: row; gap: 8px; padding: 9px 12px; }
+      body.sidebar-collapsed .sidebar-toggle .label {
+        writing-mode: horizontal-tb; transform: none; text-transform: none;
+        letter-spacing: 0.02em; font-size: 12px;
+      }
+    }
+
+    .panel {
+      background: var(--paper-raised); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 16px 16px 18px; width: 100%;
+      box-shadow: var(--shadow-card); transition: var(--transition);
+    }
+    .panel + .panel { margin-top: 16px; }
+    .panel h2 {
+      font-family: var(--font-serif); font-size: 16px; font-weight: 600;
+      margin: 0 0 4px; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    .panel-toggle {
+      flex-shrink: 0; width: 24px; height: 24px; display: flex; align-items: center;
+      justify-content: center; border: 1px solid var(--line); background: var(--paper);
+      color: var(--ink-soft); border-radius: 3px; cursor: pointer; font-size: 11px;
+      line-height: 1; padding: 0; transition: var(--transition);
+    }
+    .panel-toggle:hover { border-color: var(--brass); color: var(--brass); }
+    .panel.collapsed { padding-bottom: 14px; }
+    .panel.collapsed .panel-body { display: none; }
+    .panel.collapsed h2 { margin-bottom: 0; }
+
+    label {
+      display: block; font-size: 12px; color: var(--ink-soft);
+      margin-bottom: 4px; font-weight: 500;
+    }
+    input[type=text], input[type=number], input[type=date], select {
+      width: 100%; padding: 8px 9px; border: 1px solid var(--line); border-radius: 3px;
+      background: var(--paper); color: var(--ink); font-family: var(--font-mono);
+      font-size: 13.5px; transition: var(--transition);
+    }
+    input:focus, select:focus {
+      outline: 2px solid var(--brass); outline-offset: 1px; border-color: var(--brass);
+    }
+    .field { margin-bottom: 14px; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .hint { font-size: 11px; color: var(--ink-soft); margin-top: 4px; }
+    .rate-label { font-size: 14px; font-weight: 600; color: var(--ink); letter-spacing: 0.01em; margin-bottom: 6px; }
+
+    table { width: 100%; border-collapse: collapse; }
+    .pay-table th {
+      text-align: left; font-size: 11px; color: var(--ink-soft); font-weight: 500;
+      padding: 0 8px 6px; border-bottom: 1px solid var(--line);
+    }
+    .pay-table td { padding: 4px 5px; vertical-align: middle; }
+    .pay-table input { padding: 6px 7px; font-size: 12.5px; }
+    .pay-table .amt-col { width: 46%; }
+    .pay-table .rm-col { width: 28px; }
+    .pay-table td input[type=number] { text-align: right; }
+
+    .rate-table { table-layout: fixed; width: 100%; }
+    .rate-table th, .rate-table td { padding: 4px 4px; vertical-align: middle; overflow: visible; }
+    .rate-table .col-from { width: 38%; }
+    .rate-table .col-rate { width: 24%; }
+    .rate-table .col-method { width: 30%; }
+    .rate-table .col-rm { width: 8%; }
+    .rate-table th {
+      text-align: left; font-size: 10.5px; color: var(--ink-soft); font-weight: 500;
+      padding: 0 4px 6px; border-bottom: 1px solid var(--line); white-space: nowrap;
+    }
+    .rate-table input, .rate-table select {
+      width: 100%; min-width: 0; padding: 6px 6px; font-size: 12px; box-sizing: border-box;
+    }
+    .rate-table .rm-btn { width: 24px; height: 24px; margin: 0 auto; display: block; }
+
+    .rm-btn {
+      width: 26px; height: 26px; border: 1px solid var(--line); background: var(--paper);
+      color: var(--red); border-radius: 2px; cursor: pointer; font-size: 14px;
+      line-height: 1; transition: var(--transition);
+    }
+    .rm-btn:hover { background: var(--red-soft); }
+    .add-row-btn {
+      margin-top: 8px; width: 100%; padding: 9px; border: 1px dashed var(--line);
+      background: transparent; color: var(--ink-soft); border-radius: 2px;
+      cursor: pointer; font-family: var(--font-sans); font-size: 12.5px; transition: var(--transition);
+    }
+    .add-row-btn:hover { border-color: var(--brass); color: var(--brass); }
+
+    .btn-row { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+    button.primary {
+      flex: 1; padding: 11px 14px; background: var(--ink); color: var(--paper-raised);
+      border: none; border-radius: 3px; font-family: var(--font-sans); font-weight: 600;
+      font-size: 13.5px; cursor: pointer; letter-spacing: 0.01em; transition: var(--transition);
+    }
+    button.primary:hover { background: var(--brass); color: #1a1200; }
+    button.ghost {
+      padding: 11px 14px; background: transparent; color: var(--ink-soft);
+      border: 1px solid var(--line); border-radius: 3px; font-family: var(--font-sans);
+      font-size: 13px; cursor: pointer; transition: var(--transition);
+    }
+    button.ghost:hover { border-color: var(--ink); color: var(--ink); }
+    button.ghost.warn:hover { border-color: var(--red); color: var(--red); }
+
+    .summary-grid {
+      display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px; margin: 0 0 16px; width: 100%;
+    }
+    @media (max-width: 900px) { .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 520px) { .summary-grid { grid-template-columns: 1fr; } }
+    .stat {
+      background: var(--paper-raised); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 12px 14px; min-height: 76px;
+      box-shadow: var(--shadow-card); transition: var(--transition);
+    }
+    .stat .label {
+      font-size: 11px; color: var(--ink-soft); margin-bottom: 6px;
+      font-weight: 500; letter-spacing: 0.01em;
+    }
+    .stat .value {
+      font-family: var(--font-mono); font-size: 17px; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .stat.accent .value { color: var(--brass); }
+    .stat.result { background: var(--ink); border-color: var(--ink); }
+    .stat.result .label { color: #A9B0A0; }
+    .stat.result .value { color: var(--paper-raised); font-size: 22px; }
+    .stat.result.credit .value { color: var(--green); }
+    .stat.result.due .value { color: #E6A78E; }
+
+    .ledger-wrap {
+      background: var(--paper-raised); border: 1px solid var(--line);
+      border-radius: var(--radius); overflow-x: auto; width: 100%;
+      box-shadow: var(--shadow-card); transition: var(--transition);
+    }
+    table.ledger { width: 100%; border-collapse: collapse; min-width: 920px; }
+    table.ledger thead th {
+      text-align: left; font-size: 12.5px; font-weight: 700; letter-spacing: 0.02em;
+      color: var(--ink); padding: 12px 10px; border-bottom: 1px solid var(--ink);
+      white-space: nowrap; position: sticky; top: 0; background: var(--paper-raised);
+      transition: var(--transition);
+    }
+    table.ledger td {
+      padding: 9px 10px; font-family: var(--font-mono); font-size: 12.5px;
+      border-bottom: 1px solid var(--line-soft); white-space: nowrap;
+    }
+    table.ledger tbody tr:hover { background: var(--paper); }
+    table.ledger td.src { font-family: var(--font-sans); font-size: 12.5px; }
+    table.ledger td.num { text-align: right; }
+    .badge {
+      display: inline-block; font-family: var(--font-sans); font-size: 10.5px;
+      padding: 2px 7px; border-radius: 9px; font-weight: 500;
+    }
+    .badge.principal { background: var(--teal-soft); color: var(--teal); }
+    .badge.interest { background: var(--brass-soft); color: var(--brass); }
+    tr.outstanding td { background: var(--red-soft); }
+    tr.outstanding td.src::before { content: "⚠ "; color: var(--red); }
+    .indent { color: var(--ink-soft); margin-right: 2px; }
+    tr.multi-parent td { font-weight: 600; }
+    tr.segment-row td {
+      font-size: 11.5px; color: var(--ink-soft); background: var(--paper);
+    }
+    tr.segment-row td.src { padding-left: 22px; font-style: italic; }
+    tr.outstanding.segment-row td { background: var(--red-soft); }
+    .var-badge {
+      display: inline-block; font-family: var(--font-sans); font-size: 10.5px;
+      padding: 2px 7px; border-radius: 9px; font-weight: 500;
+      background: var(--line-soft); color: var(--ink-soft);
+    }
+
+    .section-title {
+      font-family: var(--font-serif); font-size: 18px; font-weight: 600;
+      margin: 32px 0 14px; display: flex; align-items: center; gap: 10px;
+    }
+    .section-title .line { flex: 1; height: 1px; background: var(--line); }
+    #output .section-title { margin-top: 12px; }
+    @media (min-width: 761px) { #output .section-title:first-of-type { margin-top: 4px; } }
+
+    details.notes {
+      margin-top: 30px; background: var(--paper-raised); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 16px 20px; box-shadow: var(--shadow-card);
+      transition: var(--transition);
+    }
+    details.notes summary {
+      cursor: pointer; font-family: var(--font-serif); font-weight: 600; font-size: 14.5px;
+    }
+    details.notes ul {
+      margin: 12px 0 0; padding-left: 20px; font-size: 13px; color: var(--ink-soft);
+    }
+    details.notes li { margin-bottom: 8px; }
+    details.notes code {
+      font-family: var(--font-mono); background: var(--paper);
+      padding: 1px 5px; border-radius: 2px; font-size: 12px;
+    }
+
+    .empty-state {
+      padding: 40px 20px; text-align: center; color: var(--ink-soft); font-size: 13px;
+    }
+    .surplus-note {
+      margin-top: 16px; padding: 12px 16px; border: 1px solid var(--brass);
+      border-radius: var(--radius); background: var(--brass-soft);
+      font-size: 12.5px; color: var(--ink); transition: var(--transition);
+    }
+    footer { margin-top: 44px; font-size: 11.5px; color: var(--ink-soft); text-align: center; }
+    .input-hint { font-size: 11px; color: var(--ink-soft); margin-top: 4px; opacity: 0.85; }
+    .grid .panel:last-child { margin-bottom: 0; }
+
+    /* ---------- on-screen calc block / grand total ---------- */
+    .calc-block {
+      background: var(--paper-raised); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 4px 18px; margin: 0 0 22px;
+      box-shadow: var(--shadow-card); width: 100%; transition: var(--transition);
+    }
+    .calc-row {
+      display: flex; justify-content: space-between; align-items: baseline; gap: 14px;
+      padding: 11px 0; border-bottom: 1px solid var(--line-soft); font-size: 13.5px;
+    }
+    .calc-row:last-child { border-bottom: none; }
+    .calc-row .k { color: var(--ink-soft); max-width: 60%; }
+    .calc-row .v {
+      font-family: var(--font-mono); font-weight: 600; text-align: right; white-space: nowrap;
+    }
+    .calc-row.strong .k, .calc-row.strong .v { font-weight: 700; color: var(--ink); }
+    .calc-row.accent .v { color: var(--brass); font-weight: 700; font-size: 15px; }
+    .calc-row.period .v { color: var(--teal); font-weight: 600; }
+    .calc-row.period-split { align-items: flex-start; }
+    .calc-row.period-split .v-pair {
+      display: flex; gap: 18px; font-family: var(--font-mono); font-size: 13px;
+    }
+    .calc-row.period-split .v-pair div span {
+      display: block; font-family: var(--font-sans); font-size: 10.5px;
+      color: var(--ink-soft); margin-bottom: 2px;
+    }
+    .grand-total-row {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 0; padding: 16px 18px; background: var(--ink);
+      border-radius: var(--radius); box-shadow: var(--shadow-card);
+    }
+    .grand-total-row .gt-label {
+      font-family: var(--font-serif); font-size: 14.5px; font-weight: 600; color: #A9B0A0;
+    }
+    .grand-total-row .gt-value {
+      font-family: var(--font-mono); font-size: 21px; font-weight: 700; color: var(--paper-raised);
+    }
+
+    /* ============================================================
+       PRINT SHEET — matches the SUC Assessment reference layout
+       ============================================================ */
+    #printSheet { display: none; }
+
+    @page {
+      size: A4 portrait;
+      margin: 10mm 9mm 10mm 9mm;
+    }
+
+    @media print {
+      html, body {
+        background: #fff !important;
+        color: #000 !important;
+        font-size: 9pt;
+      }
+      .no-print,
+      .wrap > .grid,
+      .wrap > header.masthead,
+      .wrap > .tabbar,
+      .wrap > details.notes,
+      .wrap > footer,
+      #sidebar {
+        display: none !important;
+      }
+      .wrap {
+        max-width: none;
+        padding: 0;
+        margin: 0;
+      }
+      #printSheet { display: block !important; }
+      #printSheet * {
+        color: #000 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+      }
+    }
+
+    /* --- print sheet header --- */
+    .ps-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-bottom: 2.5px solid #000;
+      padding-bottom: 3px;
+      margin-bottom: 8px;
+    }
+    .ps-header .ps-left .ps-eyebrow {
+      font-size: 8.5pt;
+      font-weight: 700;
+      margin-bottom: 1px;
+      letter-spacing: 0.02em;
+    }
+    .ps-header .ps-left .ps-title {
+      font-size: 12.5pt;
+      font-weight: 800;
+      margin: 0;
+      line-height: 1.15;
+      letter-spacing: 0.005em;
+    }
+    .ps-header .ps-right {
+      font-size: 8pt;
+      text-align: right;
+      line-height: 1.3;
+      white-space: nowrap;
+    }
+    .ps-header .ps-right b {
+      display: block;
+      font-size: 9pt;
+      font-weight: 700;
+    }
+
+    /* --- rows of boxes --- */
+    .ps-row3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .ps-row2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .ps-row-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .ps-box, .ps-row-full, .ps-block {
+      border: 2px solid #000;
+      padding: 4px 8px 7px;
+      break-inside: avoid;
+      page-break-inside: avoid;
+      min-width: 0;
+    }
+    .ps-row-full { margin-bottom: 6px; }
+    .ps-block { margin-bottom: 8px; }
+    .ps-block-ledger {
+      break-inside: auto;
+      page-break-inside: auto;
+    }
+    .ps-box-title, .ps-block-title {
+      font-size: 8pt;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      border-bottom: 1.5px solid #000;
+      padding-bottom: 3px;
+      margin-bottom: 5px;
+    }
+    .ps-block-title {
+      border-bottom: none;
+      padding-bottom: 0;
+      margin-bottom: 4px;
+    }
+    .ps-kv {
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      font-size: 8pt;
+      padding: 1px 0;
+      line-height: 1.3;
+    }
+    .ps-kv .k { color: #000; }
+    .ps-kv .v { font-weight: 700; text-align: right; }
+
+    /* --- rounded stat cards (matching reference image) --- */
+.ps-stat-card {
+  border: 2px solid #000;
+  border-radius: 0;
+  padding: 8px 10px;
+  min-height: 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;         /* centers children horizontally */
+  text-align: center;          /* centers inline text */
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.ps-stat-card .label {
+  font-size: 7pt;
+  font-weight: 600;
+  margin-bottom: 3px;
+  line-height: 1.2;
+  text-align: center;
+  width: 100%;
+}
+.ps-stat-card .value {
+  font-size: 10pt;
+  font-weight: 800;
+  line-height: 1.15;
+  text-align: center;
+  width: 100%;
+}
+
+    /* --- mini tables --- */
+    table.ps-mini {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 7.5pt;
+      color: #000;
+      table-layout: fixed;
+    }
+    table.ps-mini th {
+      text-align: left;
+      font-weight: 700;
+      border-bottom: 1px solid #000;
+      padding: 2px 4px;
+    }
+    table.ps-mini td {
+      padding: 2px 4px;
+      border-bottom: 0.4px solid #999;
+      word-wrap: break-word;
+    }
+    table.ps-mini td.num, table.ps-mini th.num { text-align: right; }
+    table.ps-mini tr:last-child td { border-bottom: none; }
+    table.ps-mini tr.ps-total td {
+      border-top: 1px solid #000;
+      border-bottom: none;
+      font-weight: 700;
+      padding-top: 3px;
+    }
+    table.ps-mini tr.ps-highlight td {
+      font-weight: 800;
+      border-top: 1px solid #000;
+      border-bottom: 1px solid #000;
+    }
+    table.ps-mini td.k-cell { width: 55%; }
+    table.ps-mini td.v-cell { width: 45%; text-align: right; font-weight: 700; }
+
+    /* --- ledger table --- */
+    table.ps-ledger {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 7pt;
+      color: #000;
+      table-layout: fixed;
+    }
+    table.ps-ledger th {
+      text-align: left;
+      font-weight: 700;
+      border-bottom: 1.25px solid #000;
+      padding: 2px 3px;
+      line-height: 1.15;
+    }
+    table.ps-ledger td {
+      padding: 1.8px 3px;
+      border-bottom: 0.35px solid #bbb;
+      overflow-wrap: break-word;
+      word-break: break-word;
+      line-height: 1.2;
+    }
+    table.ps-ledger td.num, table.ps-ledger th.num {
+      text-align: right;
+      font-weight: 700;
+    }
+    table.ps-ledger tr { break-inside: avoid; page-break-inside: avoid; }
+    table.ps-ledger tr.ps-qhead td {
+      font-weight: 800;
+      border-top: 1px solid #000;
+      border-bottom: 1px solid #000;
+      padding-top: 3px;
+      padding-bottom: 3px;
+    }
+    table.ps-ledger tr.ps-outstanding td { font-style: italic; }
+    table.ps-ledger tr.ps-seg td { color: #444; padding-left: 12px; }
+    table.ps-ledger thead { display: table-header-group; }
+
+    .ps-footer {
+      margin-top: 6px;
+      font-size: 6.5pt;
+      color: #000;
+      text-align: right;
+    }
+    .ps-empty-note { font-size: 7.5pt; color: #000; font-style: italic; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <header class="masthead">
+      <div class="title-block">
+        <div class="eyebrow">PENALTY ASSESSMENT</div>
+        <h1>CALCULATION OF INTEREST ON PENALTY</h1>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <button class="ghost no-print" id="freshStartBtn" title="Clear this calculation tab and start blank" style="padding:8px 14px; font-size:12.5px;">RESET TAB</button>
+        <div class="asof no-print">
+          Interest calculated as on<br><b id="asOnDisplay">—</b>
+        </div>
+        <div class="theme-toggle no-print" id="themeToggle" role="group" aria-label="Theme">
+          <button type="button" data-theme-value="light">Light</button>
+          <button type="button" data-theme-value="dark">Dark</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="tabbar no-print" id="tabBar" role="tablist" aria-label="Technology tabs"></div>
+
+    <div class="grid">
+      <aside class="sidebar no-print" id="sidebar">
+        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle input sidebar" aria-expanded="true">
+          <span class="chev">‹</span>
+          <span class="label">Hide inputs</span>
+        </button>
+
+        <div id="inputCol">
+          <div class="panel">
+            <h2>Basic Details</h2>
+            <div class="field">
+              <label for="licenseeName">Licensee Name</label>
+              <input type="text" id="licenseeName" placeholder="Enter licensee name">
+            </div>
+            <div class="field">
+              <label for="basicFy">Financial Year</label>
+              <input type="text" id="basicFy" placeholder="e.g. 2019-20">
+            </div>
+            <div class="field">
+              <label for="technology">Technology</label>
+              <select id="technology">
+                <option value="" selected>-- Select Technology --</option>
+                <option value="GSM ACCESS">GSM ACCESS</option>
+                <option value="GSM MWA">GSM MWA</option>
+                <option value="GSM MWB">GSM MWB</option>
+                <option value="E-BAND">E-BAND</option>
+                <option value="OTHER">OTHER</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2>A. Total payments</h2>
+            <div class="hint" style="margin:-2px 0 10px;">Used only to work out the penalty (shortfall). Not adjusted against the penalty itself.</div>
+            <table class="pay-table">
+              <thead><tr><th style="width:30px;">#</th><th>Date</th><th class="amt-col">Amount (₹)</th><th class="rm-col"></th></tr></thead>
+              <tbody id="tableARows"></tbody>
+            </table>
+            <button class="add-row-btn" id="addTableABtn">+ Add payment</button>
+            <button class="ghost warn" id="clearTableABtn" style="width:100%; margin-top:8px; padding:8px; font-size:12.5px;">Clear fields</button>
+          </div>
+
+          <div class="panel">
+            <h2>Penalty basis</h2>
+            <div class="field">
+              <label for="revenueShareDue">Revenue share due (₹)</label>
+              <input type="number" id="revenueShareDue" step="1" placeholder="e.g. 7233855">
+            </div>
+            <div class="field">
+              <label for="paidUpToDate">Amount paid up to</label>
+              <input type="date" id="paidUpToDate">
+              <div class="hint">Auto-set to 30-05-YYYY from FY.</div>
+            </div>
+            <div class="field">
+              <label for="penaltyPct">Penalty (% of shortfall)</label>
+              <input type="number" id="penaltyPct" step="0.01" value="50">
+            </div>
+            <div class="field">
+              <label for="penaltyRule">Penalty applicable from</label>
+              <select id="penaltyRule">
+                <option value="auditSign" selected>15 days from signing of Audit Report</option>
+                <option value="auditedSoR">15 days from submission of Audited Statement of Revenue</option>
+                <option value="custom">Custom date</option>
+              </select>
+            </div>
+            <div class="field" id="auditDateWrap">
+              <label for="auditDate" id="auditDateLabel">Date of signing of Audit Report</label>
+              <input type="date" id="auditDate">
+            </div>
+            <div class="field" id="penaltyDelayWrap">
+              <label for="penaltyDelayDays">Days after the above date</label>
+              <input type="number" id="penaltyDelayDays" step="1" value="15">
+            </div>
+            <div class="field" id="penaltyCustomWrap" style="display:none;">
+              <label for="penaltyCustomDate">Custom penalty-applicable date</label>
+              <input type="date" id="penaltyCustomDate">
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label>Date from which penalty is applicable</label>
+              <div class="qdate" id="penaltyDateDisplay" style="text-align:left; font-size:12.5px; padding:8px 0 0;">—</div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2>B. Payment available for adjustment of penalty</h2>
+            <div class="hint" style="margin:-2px 0 10px;">Only these payments reduce the penalty and its accrued interest.</div>
+            <table class="pay-table">
+              <thead><tr><th style="width:30px;">#</th><th>Date</th><th class="amt-col">Amount (₹)</th><th class="rm-col"></th></tr></thead>
+              <tbody id="tableBRows"></tbody>
+            </table>
+            <button class="add-row-btn" id="addTableBBtn">+ Add payment</button>
+            <button class="ghost warn" id="clearTableBBtn" style="width:100%; margin-top:8px; padding:8px; font-size:12.5px;">Clear fields</button>
+          </div>
+
+          <div class="panel">
+            <h2>Rate &amp; calculation schedule</h2>
+            <div class="field-row">
+              <div class="field">
+                <label for="ratePct">Default annual rate (%)</label>
+                <input type="number" id="ratePct" value="12.55" step="0.01">
+              </div>
+              <div class="field">
+                <label for="method">Default compounding</label>
+                <select id="method">
+                  <option value="monthly" selected>Monthly</option>
+                  <option value="annual">Annual</option>
+                </select>
+              </div>
+            </div>
+            <div class="field" style="margin-top:10px;">
+              <label class="rate-label">Rate / method changes</label>
+              <table class="rate-table">
+                <thead><tr>
+                  <th class="col-from">Effective from</th>
+                  <th class="col-rate">Rate %</th>
+                  <th class="col-method">Method</th>
+                  <th class="col-rm"></th>
+                </tr></thead>
+                <tbody id="rateScheduleRows"></tbody>
+              </table>
+              <button class="add-row-btn" id="addRateChangeBtn">+ Add rate / method change</button>
+            </div>
+            <div class="field" style="margin-top:10px;">
+              <label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer;">
+                <input type="checkbox" id="moratoriumCheck" style="width:auto;">
+                This is a moratorium case
+              </label>
+            </div>
+            <div class="field">
+              <label for="asOnDate">Interest calculated as on</label>
+              <input type="date" id="asOnDate">
+            </div>
+            <div class="btn-row">
+              <button class="primary" id="calcBtn">Calculate</button>
+              <button class="ghost" id="resetBtn" title="Load a worked example">Load example</button>
+            </div>
+            <div class="btn-row">
+              <button class="ghost" id="printBtn" style="flex:1;">Print / save PDF</button>
+              <button class="ghost" id="xlsxBtn" style="flex:1;">Export to Excel</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <div id="output">
+        <div class="empty-state">Enter the revenue share due, payments, and dates, then choose Calculate.</div>
+      </div>
+    </div>
+
+    <div id="printSheet"></div>
+
+    <details class="notes no-print">
+      <summary>How this engine works &amp; assumptions worth checking</summary>
+      <ul>
+        <li><b>Two payment tables, two jobs.</b> Table A (Total payments) is used only to work out the shortfall. Table B (Payment available for adjustment of penalty) is the only pool applied against the penalty and its accrued interest.</li>
+        <li><b>Shortfall &amp; penalty.</b> Amount paid up to the cut-off = sum of Table A payments on/before that date. Shortfall = Revenue Share Due − that amount. Penalty = your chosen % of the shortfall.</li>
+        <li><b>Penalty-applicable date.</b> 15 days from the Audit Report signing date, or 15 days from submission of the Audited Statement of Revenue, or a custom date.</li>
+        <li><b>Interest on penalty — same engine as the main calculator.</b> Interest accrues from the day after the penalty-applicable date, using inclusive month counting and monthly/annual compounding.</li>
+        <li><b>Interest becomes new principal.</b> Unpaid interest becomes its own liability and starts accruing further interest from the 1st of the <b>next</b> month.</li>
+        <li><b>Rate / method schedule &amp; moratorium</b> work as in the main calculator.</li>
+        <li><b>Payment waterfall.</b> Table B payments apply first to penalty principal, then to interest liabilities in FIFO order. Surplus is reported.</li>
+        <li><b>Print layout</b> matches the SUC Assessment reference — three header boxes, a rate schedule box, four rounded stat cards, and two full-width blocks (Calculation of Penalty, Calculation of Interest on Penalty) that never split awkwardly across pages.</li>
+      </ul>
+    </details>
+
+    <footer>Figures are rounded to the nearest rupee for display; calculations use full precision internally.</footer>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+    (function() {
+
+      /* ============================================================
+         THEME TOGGLE
+         ============================================================ */
+      (function themeInit() {
+        var root = document.documentElement;
+        var toggle = document.getElementById('themeToggle');
+        function applyTheme(theme) {
+          if (theme === 'dark') root.setAttribute('data-theme', 'dark');
+          else root.setAttribute('data-theme', 'light');
+          var btns = toggle.querySelectorAll('button[data-theme-value]');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].classList.toggle('active', btns[i].getAttribute('data-theme-value') === theme);
+          }
+        }
+        var saved = null;
+        try { saved = localStorage.getItem('iop_theme'); } catch (e) {}
+        var startTheme;
+        if (saved === 'dark' || saved === 'light') startTheme = saved;
+        else startTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        applyTheme(startTheme);
+        toggle.addEventListener('click', function(e) {
+          var btn = e.target.closest('button[data-theme-value]');
+          if (!btn) return;
+          var theme = btn.getAttribute('data-theme-value');
+          applyTheme(theme);
+          try { localStorage.setItem('iop_theme', theme); } catch (err) {}
+        });
+        var mq = window.matchMedia('(prefers-color-scheme: dark)');
+        var mqListener = function(e) {
+          var hasSaved = null;
+          try { hasSaved = localStorage.getItem('iop_theme'); } catch (err) {}
+          if (!hasSaved) applyTheme(e.matches ? 'dark' : 'light');
+        };
+        if (mq.addEventListener) mq.addEventListener('change', mqListener);
+        else if (mq.addListener) mq.addListener(mqListener);
+      })();
+
+      /* ---------------- date helpers ---------------- */
+      function parseDateInput(val) {
+        if (!val) return null;
+        const parts = val.split('-').map(Number);
+        if (parts.length !== 3) return null;
+        const [y, m, d] = parts;
+        if (!y || !m || !d) return null;
+        return new Date(y, m - 1, d);
+      }
+      function toInputVal(d) {
+        if (!d) return '';
+        const yyyy = d.getFullYear(), mm = String(d.getMonth() + 1).padStart(2, '0'), dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+      }
+      function fmtDate(d) {
+        if (!d) return '—';
+        const dd = String(d.getDate()).padStart(2, '0'), mm = String(d.getMonth() + 1).padStart(2, '0'), yyyy = d.getFullYear();
+        return `${dd}-${mm}-${yyyy}`;
+      }
+      function addDays(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
+      function firstOfNextMonth(d) { return new Date(d.getFullYear(), d.getMonth() + 1, 1); }
+      function monthDiffInclusive(from, to) {
+        if (!from || !to || to < from) return 0;
+        return (to.getFullYear() - from.getFullYear()) * 12 + (to.getMonth() - from.getMonth()) + 1;
+      }
+      const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      function endOfMonthLabel(d) {
+        const eom = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+        return String(eom.getDate()).padStart(2, '0') + ' ' + MONTH_ABBR[eom.getMonth()] + ' ' + eom.getFullYear();
+      }
+
+      function fyEndYear(fy) {
+        if (!fy) return null;
+        const m = String(fy).trim().match(/^(\d{4})\s*[-–—]\s*(\d{2,4})$/);
+        if (!m) return null;
+        const startYear = parseInt(m[1], 10);
+        const endPart = m[2];
+        let endYear;
+        if (endPart.length === 2) {
+          endYear = Math.floor(startYear / 100) * 100 + parseInt(endPart, 10);
+          if (endYear < startYear) endYear += 100;
+        } else endYear = parseInt(endPart, 10);
+        return endYear;
+      }
+      function defaultPaidUpToDate(fy) {
+        const y = fyEndYear(fy);
+        return y ? y + '-05-30' : '';
+      }
+
+      const inrFmt = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
+      function fmtINR(n) {
+        if (n === null || n === undefined || isNaN(n)) return '—';
+        const neg = n < -0.5;
+        const v = inrFmt.format(Math.round(Math.abs(n)));
+        return (neg ? '−' : '') + '₹' + v;
+      }
+      function num(id) { const el = document.getElementById(id); if (!el) return 0; const v = parseFloat(el.value); return isNaN(v) ? 0 : v; }
+      function escHtml(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      }
+
+      function compInterest(balance, months, ratePct, method) {
+        if (months <= 0 || balance <= 0) return 0;
+        const r = ratePct / 100;
+        if (method === 'annual') return balance * (Math.pow(1 + r, months / 12) - 1);
+        return balance * (Math.pow(1 + r / 12, months) - 1);
+      }
+
+      function getRateSchedule() {
+        return [...document.querySelectorAll('#rateScheduleRows tr')].map(tr => ({
+          from: parseDateInput(tr.querySelector('.rate-from').value),
+          rate: parseFloat(tr.querySelector('.rate-change').value),
+          method: tr.querySelector('.method-change').value
+        })).filter(x => x.from && Number.isFinite(x.rate)).sort((a, b) => a.from - b.from);
+      }
+      function effectiveRuleForDate(date, defaultRate, defaultMethod, schedule) {
+        let rule = { rate: defaultRate, method: defaultMethod };
+        for (const s of schedule) {
+          const effective = new Date(s.from.getFullYear(), s.from.getMonth(), 1);
+          if (date >= effective) rule = { rate: s.rate, method: s.method };
+          else break;
+        }
+        return rule;
+      }
+      function segmentedInterest(balance, from, to, defaultRate, defaultMethod, schedule) {
+        if (balance <= 0 || !from || !to || to < from) return { interest: 0, segments: [] };
+        const boundaries = [];
+        schedule.forEach(s => {
+          const b = new Date(s.from.getFullYear(), s.from.getMonth(), 1);
+          if (b > from && b <= to) boundaries.push(b);
+        });
+        boundaries.sort((a, b) => a - b);
+        let runningBalance = balance, totalInterest = 0;
+        const segments = [];
+        const starts = [from, ...boundaries];
+        for (let i = 0; i < starts.length; i++) {
+          const segFrom = starts[i];
+          const next = i + 1 < starts.length ? starts[i + 1] : new Date(to.getFullYear(), to.getMonth() + 1, 1);
+          const segTo = new Date(Math.min(to.getTime(), next.getTime() - 86400000));
+          if (segTo < segFrom) continue;
+          const months = monthDiffInclusive(segFrom, segTo);
+          const rule = effectiveRuleForDate(segFrom, defaultRate, defaultMethod, schedule);
+          const interest = compInterest(runningBalance, months, rule.rate, rule.method);
+          totalInterest += interest;
+          segments.push({ from: segFrom, to: segTo, months, rate: rule.rate, method: rule.method, base: runningBalance, interest });
+          runningBalance += interest;
+        }
+        return { interest: totalInterest, segments };
+      }
+      function chainLockedInterest(balance, from, to, defaultRate, defaultMethod, schedule, rootDate) {
+        if (balance <= 0 || !from || !to || to < from) return { interest: 0, segments: [] };
+        const rule = effectiveRuleForDate(rootDate, defaultRate, defaultMethod, schedule);
+        const months = monthDiffInclusive(from, to);
+        const interest = compInterest(balance, months, rule.rate, rule.method);
+        return { interest, segments: [{ from, to, months, rate: rule.rate, method: rule.method, base: balance, interest }] };
+      }
+      function calcInterest(balance, from, to, defaultRate, defaultMethod, schedule, rootDate, moratorium) {
+        return moratorium
+          ? segmentedInterest(balance, from, to, defaultRate, defaultMethod, schedule)
+          : chainLockedInterest(balance, from, to, defaultRate, defaultMethod, schedule, rootDate);
+      }
+
+      /* ============================================================
+         STORAGE — v2 keys
+         ============================================================ */
+      const TABS_KEY = 'iop_tabs_v2';
+      const ACTIVE_TAB_KEY = 'iop_active_tab_v2';
+      const PANEL_KEY = 'iop_panels_v2';
+      const SIDEBAR_KEY = 'iop_sidebar_collapsed_v2';
+
+      let tabs = [];
+      let activeTabIndex = 0;
+      let tabSeq = 0;
+      function newTabId() { return 't' + (++tabSeq) + '_' + Date.now().toString(36); }
+      function makeTab(state) { return { id: newTabId(), state: state }; }
+
+      function saveTabs() {
+        try {
+          localStorage.setItem(TABS_KEY, JSON.stringify(tabs));
+          localStorage.setItem(ACTIVE_TAB_KEY, String(activeTabIndex));
+        } catch (e) {}
+      }
+      function saveState() {
+        try {
+          const state = collectRawInputs();
+          if (tabs && tabs.length) {
+            tabs[activeTabIndex].state = state;
+            saveTabs();
+          }
+        } catch (e) {}
+      }
+      function bootstrapTabs() {
+        let loaded = null;
+        try {
+          const raw = localStorage.getItem(TABS_KEY);
+          loaded = raw ? JSON.parse(raw) : null;
+        } catch (e) { loaded = null; }
+        if (loaded && loaded.length) {
+          tabs = loaded.map(t => ({ id: t.id || newTabId(), state: t.state || blankState() }));
+          let savedActive = 0;
+          try { savedActive = parseInt(localStorage.getItem(ACTIVE_TAB_KEY), 10) || 0; } catch (e) {}
+          activeTabIndex = Math.min(Math.max(savedActive, 0), tabs.length - 1);
+        } else {
+          tabs = [ makeTab(blankState()) ];
+          activeTabIndex = 0;
+        }
+      }
+
+      function renderTabBar() {
+        const bar = document.getElementById('tabBar');
+        if (!bar) return;
+        bar.innerHTML = '';
+        tabs.forEach((t, i) => {
+          const el = document.createElement('div');
+          el.className = 'tab' + (i === activeTabIndex ? ' active' : '');
+          el.setAttribute('role', 'tab');
+          el.setAttribute('aria-selected', String(i === activeTabIndex));
+          const name = document.createElement('span');
+          name.className = 'tab-name';
+          name.textContent = 'Technology ' + (i + 1);
+          el.appendChild(name);
+          if (tabs.length > 1) {
+            const close = document.createElement('span');
+            close.className = 'tab-close';
+            close.title = 'Close this tab';
+            close.textContent = '×';
+            close.addEventListener('click', (e) => { e.stopPropagation(); closeTab(i); });
+            el.appendChild(close);
+          }
+          el.addEventListener('click', () => switchTab(i));
+          bar.appendChild(el);
+        });
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'tab-add';
+        addBtn.title = 'New tab';
+        addBtn.setAttribute('aria-label', 'Add new technology tab');
+        addBtn.textContent = '+';
+        addBtn.addEventListener('click', addTab);
+        bar.appendChild(addBtn);
+      }
+
+      function switchTab(i) {
+        if (i === activeTabIndex || i < 0 || i >= tabs.length) return;
+        tabs[activeTabIndex].state = collectRawInputs();
+        saveTabs();
+        activeTabIndex = i;
+        applyRawInputs(tabs[activeTabIndex].state);
+        updatePenaltyRuleUI();
+        refreshPenaltyDateLabel();
+        calculate();
+        renderTabBar();
+      }
+      function addTab() {
+        tabs[activeTabIndex].state = collectRawInputs();
+        tabs.push(makeTab(blankState()));
+        activeTabIndex = tabs.length - 1;
+        applyRawInputs(tabs[activeTabIndex].state);
+        updatePenaltyRuleUI();
+        refreshPenaltyDateLabel();
+        calculate();
+        renderTabBar();
+      }
+      function closeTab(i) {
+        if (tabs.length <= 1) return;
+        if (!confirm('Close "Technology ' + (i + 1) + '"? Its data will be discarded.')) return;
+        const closingActive = (i === activeTabIndex);
+        tabs.splice(i, 1);
+        if (closingActive) {
+          if (activeTabIndex >= tabs.length) activeTabIndex = tabs.length - 1;
+          applyRawInputs(tabs[activeTabIndex].state);
+          updatePenaltyRuleUI();
+          refreshPenaltyDateLabel();
+          calculate();
+        } else {
+          if (i < activeTabIndex) activeTabIndex -= 1;
+          saveTabs();
+        }
+        renderTabBar();
+      }
+
+      /* ---------------- payment rows ---------------- */
+      let paymentRowSeq = 0;
+      function addPayRow(tbodyId, dateVal, amountVal) {
+        const tbody = document.getElementById(tbodyId);
+        const tr = document.createElement('tr');
+        const rid = 'pr' + (++paymentRowSeq);
+        tr.dataset.rid = rid;
+        tr.innerHTML = `
+          <td class="row-no" style="text-align:center; color:var(--ink-soft); font-size:12px;"></td>
+          <td><input type="date" class="pay-date" value="${dateVal || ''}"></td>
+          <td class="amt-col"><input type="number" class="pay-amt" step="1" placeholder="0" value="${amountVal !== undefined ? amountVal : ''}"></td>
+          <td class="rm-col"><button class="rm-btn" title="Remove">×</button></td>
+        `;
+        tr.querySelector('.rm-btn').addEventListener('click', () => { tr.remove(); renumberRows(tbodyId); });
+        tbody.appendChild(tr);
+        renumberRows(tbodyId);
+      }
+      function renumberRows(tbodyId) {
+        const tbody = document.getElementById(tbodyId);
+        [...tbody.querySelectorAll('tr')].forEach((tr, i) => {
+          const c = tr.querySelector('.row-no');
+          if (c) c.textContent = i + 1;
+        });
+      }
+      function readPayRows(tbodyId) {
+        return [...document.querySelectorAll('#' + tbodyId + ' tr')].map(tr => ({
+          date: tr.querySelector('.pay-date').value,
+          amount: tr.querySelector('.pay-amt').value
+        }));
+      }
+      function readPayRowsParsed(tbodyId) {
+        return [...document.querySelectorAll('#' + tbodyId + ' tr')].map(tr => {
+          const d = parseDateInput(tr.querySelector('.pay-date').value);
+          const a = parseFloat(tr.querySelector('.pay-amt').value);
+          return (d && !isNaN(a) && a > 0) ? { date: d, amount: a } : null;
+        }).filter(Boolean);
+      }
+
+      function addRateChangeRow(fromVal = '', rateVal = '', methodVal = 'monthly') {
+        const tbody = document.getElementById('rateScheduleRows');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="col-from"><input type="date" class="rate-from" value="${fromVal || ''}"></td>
+          <td class="col-rate"><input type="number" class="rate-change" step="0.01" placeholder="Rate" value="${rateVal !== undefined ? rateVal : ''}"></td>
+          <td class="col-method"><select class="method-change">
+            <option value="monthly" ${methodVal === 'monthly' ? 'selected' : ''}>Monthly</option>
+            <option value="annual" ${methodVal === 'annual' ? 'selected' : ''}>Annual</option>
+          </select></td>
+          <td class="col-rm"><button class="rm-btn" title="Remove">×</button></td>`;
+        tr.querySelector('.rm-btn').addEventListener('click', () => tr.remove());
+        tbody.appendChild(tr);
+      }
+
+      function computePenaltyDate() {
+        const rule = document.getElementById('penaltyRule').value;
+        if (rule === 'custom') return parseDateInput(document.getElementById('penaltyCustomDate').value);
+        const baseDate = parseDateInput(document.getElementById('auditDate').value);
+        const delay = num('penaltyDelayDays') || 0;
+        return baseDate ? addDays(baseDate, delay) : null;
+      }
+      function refreshPenaltyDateLabel() {
+        const d = computePenaltyDate();
+        document.getElementById('penaltyDateDisplay').textContent = d ? fmtDate(d) : '—';
+      }
+      function getAuditBaseLabel() {
+        const rule = document.getElementById('penaltyRule').value;
+        if (rule === 'auditedSoR') return 'Date of submission of Audited Statement of Revenue';
+        if (rule === 'custom') return 'Custom penalty date';
+        return 'Date of signing of Audit Report';
+      }
+      function updatePenaltyRuleUI() {
+        const rule = document.getElementById('penaltyRule').value;
+        const auditWrap = document.getElementById('auditDateWrap');
+        const delayWrap = document.getElementById('penaltyDelayWrap');
+        const customWrap = document.getElementById('penaltyCustomWrap');
+        const label = document.getElementById('auditDateLabel');
+        if (rule === 'custom') {
+          auditWrap.style.display = 'none';
+          delayWrap.style.display = 'none';
+          customWrap.style.display = 'block';
+        } else {
+          auditWrap.style.display = 'block';
+          delayWrap.style.display = 'block';
+          customWrap.style.display = 'none';
+          label.textContent = (rule === 'auditedSoR')
+            ? 'Date of submission of Audited Statement of Revenue'
+            : 'Date of signing of Audit Report';
+        }
+        refreshPenaltyDateLabel();
+      }
+
+      function collectRawInputs() {
+        return {
+          licenseeName: document.getElementById('licenseeName').value,
+          basicFy: document.getElementById('basicFy').value,
+          technology: document.getElementById('technology').value,
+          tableA: readPayRows('tableARows'),
+          revenueShareDue: document.getElementById('revenueShareDue').value,
+          paidUpToDate: document.getElementById('paidUpToDate').value,
+          penaltyPct: document.getElementById('penaltyPct').value,
+          penaltyRule: document.getElementById('penaltyRule').value,
+          auditDate: document.getElementById('auditDate').value,
+          penaltyDelayDays: document.getElementById('penaltyDelayDays').value,
+          penaltyCustomDate: document.getElementById('penaltyCustomDate').value,
+          tableB: readPayRows('tableBRows'),
+          ratePct: document.getElementById('ratePct').value,
+          method: document.getElementById('method').value,
+          rateSchedule: [...document.querySelectorAll('#rateScheduleRows tr')].map(tr => ({
+            from: tr.querySelector('.rate-from').value,
+            rate: tr.querySelector('.rate-change').value,
+            method: tr.querySelector('.method-change').value
+          })),
+          moratorium: document.getElementById('moratoriumCheck').checked,
+          asOnDate: document.getElementById('asOnDate').value
+        };
+      }
+      function applyRawInputs(state) {
+        if (!state) return false;
+        document.getElementById('licenseeName').value = state.licenseeName ?? '';
+        document.getElementById('basicFy').value = state.basicFy ?? '';
+        document.getElementById('technology').value = state.technology ?? '';
+        document.getElementById('tableARows').innerHTML = '';
+        (state.tableA && state.tableA.length ? state.tableA : [{ date: '', amount: '' }]).forEach(p => addPayRow('tableARows', p.date, p.amount));
+        document.getElementById('revenueShareDue').value = state.revenueShareDue ?? '';
+        document.getElementById('paidUpToDate').value = state.paidUpToDate ?? '';
+        document.getElementById('penaltyPct').value = state.penaltyPct ?? '50';
+        document.getElementById('penaltyRule').value = state.penaltyRule || 'auditSign';
+        document.getElementById('auditDate').value = state.auditDate ?? '';
+        document.getElementById('penaltyDelayDays').value = state.penaltyDelayDays ?? '15';
+        document.getElementById('penaltyCustomDate').value = state.penaltyCustomDate ?? '';
+        document.getElementById('tableBRows').innerHTML = '';
+        (state.tableB && state.tableB.length ? state.tableB : [{ date: '', amount: '' }]).forEach(p => addPayRow('tableBRows', p.date, p.amount));
+        document.getElementById('ratePct').value = state.ratePct || '12.55';
+        document.getElementById('method').value = state.method || 'monthly';
+        document.getElementById('rateScheduleRows').innerHTML = '';
+        (state.rateSchedule || []).forEach(x => addRateChangeRow(x.from, x.rate, x.method));
+        document.getElementById('moratoriumCheck').checked = !!state.moratorium;
+        document.getElementById('asOnDate').value = state.asOnDate || toInputVal(new Date());
+        updatePenaltyRuleUI();
+        return true;
+      }
+
+      function blankState() {
+        return {
+          licenseeName: '', basicFy: '', technology: '',
+          tableA: [{ date: '', amount: '' }],
+          revenueShareDue: '', paidUpToDate: '', penaltyPct: '50',
+          penaltyRule: 'auditSign', auditDate: '', penaltyDelayDays: '15', penaltyCustomDate: '',
+          tableB: [{ date: '', amount: '' }],
+          ratePct: '12.55', method: 'monthly', rateSchedule: [],
+          moratorium: false, asOnDate: toInputVal(new Date())
+        };
+      }
+      function exampleState() {
+        return {
+          licenseeName: '', basicFy: '2019-20', technology: 'GSM MWB',
+          tableA: [
+            { date: '2019-07-12', amount: '155112' },
+            { date: '2019-10-14', amount: '1486499' },
+            { date: '2020-01-13', amount: '1738468' },
+            { date: '2020-03-25', amount: '1738483' },
+            { date: '2020-04-16', amount: '111995' },
+            { date: '2022-02-01', amount: '1585602' }
+          ],
+          revenueShareDue: '7233855', paidUpToDate: '2020-05-30', penaltyPct: '50',
+          penaltyRule: 'auditSign', auditDate: '2020-06-30', penaltyDelayDays: '15', penaltyCustomDate: '',
+          tableB: [{ date: '2022-02-01', amount: '205413' }],
+          ratePct: '12.55', method: 'monthly', rateSchedule: [],
+          moratorium: false, asOnDate: '2025-07-31'
+        };
+      }
+
+      function computePenaltyBasis() {
+        const revenueShareDue = num('revenueShareDue');
+        const cutoff = parseDateInput(document.getElementById('paidUpToDate').value);
+        const penaltyPct = num('penaltyPct') || 0;
+        const baseDate = parseDateInput(document.getElementById('auditDate').value);
+        const tableARows = readPayRowsParsed('tableARows');
+        const totalTableA = tableARows.reduce((s, p) => s + p.amount, 0);
+        const paidUpTo = cutoff
+          ? tableARows.filter(p => p.date.getTime() <= cutoff.getTime()).reduce((s, p) => s + p.amount, 0)
+          : 0;
+        const shortfall = Math.max(0, revenueShareDue - paidUpTo);
+        const shortfallPct = revenueShareDue > 0 ? (shortfall / revenueShareDue) * 100 : 0;
+        const penalty = Math.round(shortfall * (penaltyPct / 100));
+        const penaltyDate = computePenaltyDate();
+        return { revenueShareDue, cutoff, penaltyPct, baseDate, totalTableA, paidUpTo, shortfall, shortfallPct, penalty, penaltyDate };
+      }
+
+      function computePenaltyLedger(penaltyAmount, penaltyDate, ratePct, method, rateSchedule, asOnDate, payments, moratorium) {
+        const rootDate = penaltyDate;
+        const liabQueue = [{
+          label: 'Penalty', type: 'principal', balance: penaltyAmount,
+          periodStart: addDays(penaltyDate, 1), dueDate: penaltyDate, root: 'PENALTY'
+        }];
+        const ledger = [];
+        let surplus = 0;
+        const surplusRows = [];
+
+        function applyEvent(liab, evDate, payAmt) {
+          const opening = liab.balance;
+          let interestGen = 0, from = null, to = null, months = null;
+          let displayRate = ratePct, displayMethod = method, segments = [];
+          if (evDate.getTime() >= liab.periodStart.getTime()) {
+            from = liab.periodStart; to = evDate;
+            const calc = calcInterest(opening, from, to, ratePct, method, rateSchedule, rootDate, moratorium);
+            interestGen = calc.interest; segments = calc.segments;
+            months = monthDiffInclusive(from, to);
+            if (segments.length === 1) { displayRate = segments[0].rate; displayMethod = segments[0].method; }
+            else if (segments.length > 1) { displayRate = 'VAR'; displayMethod = 'VAR'; }
+            liab.periodStart = firstOfNextMonth(evDate);
+            if (interestGen > 0.004) {
+              liabQueue.push({
+                label: 'Interest on ' + liab.label, type: 'interest',
+                balance: interestGen, periodStart: firstOfNextMonth(evDate), root: 'PENALTY'
+              });
+            }
+          }
+          const pay = Math.min(payAmt, liab.balance);
+          liab.balance -= pay;
+          ledger.push({
+            quarter: liab.label, type: liab.type, amountDue: opening, payment: pay, date: evDate,
+            from, to, months, rate: displayRate, method: displayMethod, interest: interestGen,
+            segments, settled: liab.balance <= 0.004, root: liab.root
+          });
+          return payAmt - pay;
+        }
+
+        const sortedPayments = [...payments].sort((a, b) => a.date - b.date);
+        for (const p of sortedPayments) {
+          let remaining = p.amount;
+          while (remaining > 0.004 && liabQueue.length) {
+            const liab = liabQueue[0];
+            if (liab.balance <= 0.004) { liabQueue.shift(); continue; }
+            remaining = applyEvent(liab, p.date, remaining);
+            if (liab.balance <= 0.004) liabQueue.shift(); else break;
+          }
+          if (remaining > 0.004) { surplus += remaining; surplusRows.push({ date: p.date, amount: remaining }); }
+        }
+
+        const outstandingRows = [];
+        liabQueue.forEach(liab => {
+          if (liab.balance <= 0.004) return;
+          let interestGen = 0, from = null, to = null, months = null;
+          let rateDisplay = ratePct, methodDisplay = method, segments = [];
+          if (asOnDate.getTime() >= liab.periodStart.getTime()) {
+            months = monthDiffInclusive(liab.periodStart, asOnDate);
+            from = liab.periodStart; to = asOnDate;
+            const calc = calcInterest(liab.balance, from, to, ratePct, method, rateSchedule, rootDate, moratorium);
+            interestGen = calc.interest; segments = calc.segments;
+            if (segments.length === 1) { rateDisplay = segments[0].rate; methodDisplay = segments[0].method; }
+            else if (segments.length > 1) { rateDisplay = 'VAR'; methodDisplay = 'VAR'; }
+          }
+          outstandingRows.push({
+            quarter: liab.label, type: liab.type, balance: liab.balance, from, to, months,
+            rate: rateDisplay, method: methodDisplay, interest: interestGen, segments, root: liab.root
+          });
+        });
+
+        const totalPaidAdjustment = payments.reduce((s, p) => s + p.amount, 0);
+        const totalInterest = ledger.reduce((s, r) => s + r.interest, 0)
+                            + outstandingRows.reduce((s, r) => s + r.interest, 0);
+        const netPenaltyDue = penaltyAmount - totalPaidAdjustment;
+        const grandTotal = penaltyAmount + totalInterest;
+        const outstandingPrincipalBal = outstandingRows.filter(r => r.type === 'principal').reduce((s, r) => s + r.balance, 0);
+        const outstandingInterestBal = outstandingRows.filter(r => r.type === 'interest').reduce((s, r) => s + r.balance, 0);
+
+        return {
+          ledger, outstandingRows, surplus, surplusRows,
+          penaltyAmount, totalPaidAdjustment, totalInterest, netPenaltyDue, grandTotal,
+          outstandingPrincipalBal, outstandingInterestBal
+        };
+      }
+
+      /* ---------------- on-screen rendering ---------------- */
+      function renderOutput(basis, result, asOnDate) {
+        const out = document.getElementById('output');
+        const rows = result.ledger;
+        let html = '';
+
+        html += `<div class="summary-grid">
+          <div class="stat"><div class="label">Penalty (${basis.penaltyPct}% of shortfall)</div><div class="value">${fmtINR(result.penaltyAmount)}</div></div>
+          <div class="stat"><div class="label">Payment adjusted (Table B)</div><div class="value">${fmtINR(result.totalPaidAdjustment)}</div></div>
+          <div class="stat accent"><div class="label">Total interest on penalty</div><div class="value">${fmtINR(result.totalInterest)}</div></div>
+          <div class="stat result due"><div class="label">Penalty + Interest on Penalty</div><div class="value">${fmtINR(result.grandTotal)}</div></div>
+        </div>`;
+
+        if (result.outstandingPrincipalBal > 0.5 || result.outstandingInterestBal > 0.5) {
+          html += `<div class="surplus-note">Outstanding as on ${fmtDate(asOnDate)}: ${fmtINR(result.outstandingPrincipalBal)} unpaid penalty, ${fmtINR(result.outstandingInterestBal)} unpaid interest liability (shown in the ledger below in red).</div>`;
+        }
+        if (result.surplus > 0.5) {
+          html += `<div class="surplus-note">₹${inrFmt.format(Math.round(result.surplus))} of Table B payments could not be matched to any liability and is shown as surplus.</div>`;
+        }
+
+        html += `<div class="section-title">Calculation of penalty<div class="line"></div></div>`;
+        html += `<div class="calc-block">`;
+        html += calcRow('Revenue share due', fmtINR(basis.revenueShareDue));
+        html += calcRow('Amount paid up to ' + (basis.cutoff ? fmtDate(basis.cutoff) : '—'), fmtINR(basis.paidUpTo));
+        html += calcRow('Total amount paid (Table A)', fmtINR(basis.totalTableA));
+        html += calcRow('Shortfall on ' + (basis.cutoff ? fmtDate(basis.cutoff) : '—'), fmtINR(basis.shortfall), 'strong');
+        html += calcRow('Percentage of shortfall', basis.revenueShareDue > 0 ? basis.shortfallPct.toFixed(2) + '%' : '—');
+        html += calcRow(`Penalty (${basis.penaltyPct}% of shortfall)`, fmtINR(basis.penalty), 'accent');
+        html += calcRow(getAuditBaseLabel(), basis.baseDate ? fmtDate(basis.baseDate) : '—');
+        html += calcRow('Date from which penalty is applicable', basis.penaltyDate ? fmtDate(basis.penaltyDate) : '—', 'strong');
+        html += calcRow('Rate applicable', ratePctAtDate(basis.penaltyDate) + '%', 'period');
+        html += calcPeriodRow('Interest due period', basis.penaltyDate ? fmtDate(basis.penaltyDate) : '—', fmtDate(asOnDate));
+        html += calcRow('Interest period (in months)', basis.penaltyDate ? monthDiffInclusive(basis.penaltyDate, asOnDate) : '—');
+        html += `</div>`;
+
+        html += `<div class="section-title">Calculation of interest on penalty<div class="line"></div></div>`;
+        html += `<div class="ledger-wrap"><table class="ledger"><thead><tr>
+          <th>Source</th><th>Type</th><th class="num">Amount due</th><th class="num">Payment</th><th>Date of payment</th>
+          <th>Period from</th><th>Period to</th><th class="num">Months</th><th class="num">Rate</th><th class="num">Interest</th>
+        </tr></thead><tbody>`;
+
+        if (!rows.length && !result.outstandingRows.length) {
+          html += `<tr><td colspan="10" style="text-align:center; padding:24px; font-family:var(--font-sans); color:var(--ink-soft);">Enter a Revenue Share Due, a penalty base date, and at least one Table A payment to compute a penalty.</td></tr>`;
+        }
+
+        function segmentSubRowHTML(seg, isOutstanding) {
+          return `<tr class="segment-row${isOutstanding ? ' outstanding' : ''}">
+            <td class="src">Block: ${fmtINR(seg.base)} @ ${seg.rate}% (${seg.method === 'annual' ? 'annual' : 'monthly'})</td>
+            <td></td><td class="num">—</td><td class="num">—</td><td>—</td>
+            <td>${fmtDate(seg.from)}</td><td>${fmtDate(seg.to)}</td>
+            <td class="num">${seg.months}</td><td class="num">${seg.rate}%</td>
+            <td class="num">${seg.interest > 0.5 ? fmtINR(seg.interest) : '—'}</td>
+          </tr>`;
+        }
+        function rowHTML(r) {
+          const depth = (r.quarter.match(/Interest on/g) || []).length;
+          const multi = r.segments && r.segments.length > 1;
+          const rateCell = multi ? `<span class="var-badge">${r.segments.length} rate blocks</span>` : (r.months ? (typeof r.rate === 'number' ? r.rate + '%' : r.rate) : '—');
+          let html = `<tr${multi ? ' class="multi-parent"' : ''}>
+            <td class="src">${'<span class="indent">'.repeat(depth)}${'&nbsp;&nbsp;'.repeat(depth)}${escHtml(r.quarter)}</td>
+            <td><span class="badge ${r.type}">${r.type === 'principal' ? 'Penalty' : 'Interest'}</span></td>
+            <td class="num">${fmtINR(r.amountDue)}</td>
+            <td class="num">${fmtINR(r.payment)}</td>
+            <td>${fmtDate(r.date)}</td>
+            <td>${r.from ? fmtDate(r.from) : '—'}</td>
+            <td>${r.to ? fmtDate(r.to) : '—'}</td>
+            <td class="num">${r.months ?? '—'}</td>
+            <td class="num">${rateCell}</td>
+            <td class="num">${r.interest > 0.5 ? fmtINR(r.interest) : '—'}</td>
+          </tr>`;
+          if (multi) { r.segments.forEach(seg => { html += segmentSubRowHTML(seg, false); }); }
+          return html;
+        }
+        function outstandingRowHTML(r) {
+          const multi = r.segments && r.segments.length > 1;
+          const rateCell = multi ? `<span class="var-badge">${r.segments.length} rate blocks</span>` : (r.months ? (typeof r.rate === 'number' ? r.rate + '%' : r.rate) : '—');
+          let html = `<tr class="outstanding${multi ? ' multi-parent' : ''}">
+            <td class="src">${escHtml(r.quarter)} — outstanding</td>
+            <td><span class="badge ${r.type}">${r.type === 'principal' ? 'Penalty' : 'Interest'}</span></td>
+            <td class="num">${fmtINR(r.balance)}</td>
+            <td class="num">—</td>
+            <td>unpaid</td>
+            <td>${r.from ? fmtDate(r.from) : '—'}</td>
+            <td>${r.to ? fmtDate(r.to) : '—'}</td>
+            <td class="num">${r.months ?? '—'}</td>
+            <td class="num">${rateCell}</td>
+            <td class="num">${r.interest > 0.5 ? fmtINR(r.interest) : '—'}</td>
+          </tr>`;
+          if (multi) { r.segments.forEach(seg => { html += segmentSubRowHTML(seg, true); }); }
+          return html;
+        }
+
+        rows.forEach(r => { html += rowHTML(r); });
+        result.outstandingRows.forEach(r => { html += outstandingRowHTML(r); });
+        html += `</tbody></table></div>`;
+
+        html += `<div class="grand-total-row" style="margin-top:16px;">
+          <div class="gt-label">Penalty + Interest on Penalty</div>
+          <div class="gt-value">${fmtINR(result.grandTotal)}</div>
+        </div>`;
+
+        out.innerHTML = html;
+        window.__lastLedgerRows = rows;
+        window.__lastOutstandingRows = result.outstandingRows;
+      }
+
+      function calcRow(label, value, cls) {
+        return `<div class="calc-row${cls ? ' ' + cls : ''}"><span class="k">${label}</span><span class="v">${value}</span></div>`;
+      }
+      function calcPeriodRow(label, from, to) {
+        return `<div class="calc-row period-split"><span class="k">${label}</span>
+          <div class="v-pair">
+            <div><span>From</span>${from}</div>
+            <div><span>To</span>${to}</div>
+          </div>
+        </div>`;
+      }
+      function ratePctAtDate(d) {
+        if (!d) return num('ratePct');
+        const schedule = getRateSchedule();
+        const defaultRate = num('ratePct');
+        const defaultMethod = document.getElementById('method').value;
+        const rule = effectiveRuleForDate(d, defaultRate, defaultMethod, schedule);
+        return rule.rate;
+      }
+
+      function calculate() {
+        const basis = computePenaltyBasis();
+        const ratePct = num('ratePct');
+        const method = document.getElementById('method').value;
+        const rateSchedule = getRateSchedule();
+        const moratorium = document.getElementById('moratoriumCheck').checked;
+        let asOnDate = parseDateInput(document.getElementById('asOnDate').value);
+        if (!asOnDate) asOnDate = new Date();
+        const tableB = readPayRowsParsed('tableBRows');
+
+        document.getElementById('asOnDisplay').textContent = fmtDate(asOnDate);
+        refreshPenaltyDateLabel();
+
+        const effectiveDate = basis.penaltyDate || asOnDate;
+        const result = computePenaltyLedger(
+          basis.penalty || 0, effectiveDate, ratePct, method, rateSchedule,
+          asOnDate, tableB, moratorium
+        );
+
+        renderOutput(basis, result, asOnDate);
+
+        window.__lastBasis = basis;
+        window.__lastResult = result;
+        window.__lastAsOn = asOnDate;
+        window.__lastTableB = tableB;
+        window.__lastTableA = readPayRowsParsed('tableARows');
+
+        saveState();
+      }
+
+      /* ============================================================
+         PRINT SHEET — matches the SUC Assessment reference layout
+         ============================================================ */
+      function buildPrintLedgerTable(result) {
+        const rows = result.ledger;
+        let html = `<table class="ps-ledger"><colgroup>
+          <col style="width:22%"><col style="width:8%"><col style="width:10%"><col style="width:9%">
+          <col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:6%">
+          <col style="width:7%"><col style="width:11%">
+        </colgroup>
+        <thead><tr>
+          <th>Source</th><th>Type</th><th class="num">Amount Due</th><th class="num">Payment</th>
+          <th>Pay Date</th><th>From</th><th>To</th><th class="num">Mo.</th><th class="num">Rate</th><th class="num">Interest</th>
+        </tr></thead><tbody>`;
+
+        if (!rows.length && !result.outstandingRows.length) {
+          html += `<tr><td colspan="10" style="text-align:center;padding:8px;">No ledger entries yet.</td></tr></tbody></table>`;
+          return html;
+        }
+
+        function segRow(seg, isOutstanding) {
+          return `<tr class="ps-seg${isOutstanding ? ' ps-outstanding' : ''}">
+            <td>Block: ${fmtINR(seg.base)} @ ${seg.rate}% (${seg.method === 'annual' ? 'ann' : 'mo'})</td>
+            <td></td><td class="num">—</td><td class="num">—</td><td>—</td>
+            <td>${fmtDate(seg.from)}</td><td>${fmtDate(seg.to)}</td>
+            <td class="num">${seg.months}</td><td class="num">${seg.rate}%</td>
+            <td class="num">${seg.interest > 0.5 ? fmtINR(seg.interest) : '—'}</td>
+          </tr>`;
+        }
+        function mainRow(r, isOutstanding) {
+          const multi = r.segments && r.segments.length > 1;
+          const rateCell = multi ? (r.segments.length + ' blks') : (r.months ? (typeof r.rate === 'number' ? r.rate + '%' : r.rate) : '—');
+          const amt = isOutstanding ? r.balance : r.amountDue;
+          const pay = isOutstanding ? '—' : fmtINR(r.payment);
+          const dateCell = isOutstanding ? 'unpaid' : fmtDate(r.date);
+          const label = isOutstanding ? r.quarter + ' — outstanding' : r.quarter;
+          let rowHtml = `<tr class="${isOutstanding ? 'ps-outstanding' : ''}">
+            <td>${escHtml(label)}</td>
+            <td>${r.type === 'principal' ? 'Penalty' : 'Int.'}</td>
+            <td class="num">${fmtINR(amt)}</td>
+            <td class="num">${pay}</td>
+            <td>${dateCell}</td>
+            <td>${r.from ? fmtDate(r.from) : '—'}</td>
+            <td>${r.to ? fmtDate(r.to) : '—'}</td>
+            <td class="num">${r.months ?? '—'}</td>
+            <td class="num">${rateCell}</td>
+            <td class="num">${r.interest > 0.5 ? fmtINR(r.interest) : '—'}</td>
+          </tr>`;
+          if (multi) r.segments.forEach(seg => { rowHtml += segRow(seg, isOutstanding); });
+          return rowHtml;
+        }
+
+        rows.forEach(r => { html += mainRow(r, false); });
+        result.outstandingRows.forEach(r => { html += mainRow(r, true); });
+
+        html += `</tbody></table>`;
+        return html;
+      }
+
+      function buildPrintSheet() {
+        calculate();
+        const basis = window.__lastBasis;
+        const result = window.__lastResult;
+        const ps = document.getElementById('printSheet');
+        if (!ps) return;
+        if (!result) { ps.innerHTML = '<div class="ps-empty-note">Enter the penalty details, then choose Calculate.</div>'; return; }
+
+        const asOn = window.__lastAsOn;
+        const tableA = (window.__lastTableA || []).slice().sort((a, b) => a.date - b.date);
+        const tableB = (window.__lastTableB || []).slice().sort((a, b) => a.date - b.date);
+
+        const licenseeName = document.getElementById('licenseeName').value.trim();
+        const basicFy = document.getElementById('basicFy').value.trim();
+        const technology = document.getElementById('technology').value;
+        const ratePct = document.getElementById('ratePct').value;
+        const method = document.getElementById('method').value;
+        const moratorium = document.getElementById('moratoriumCheck').checked;
+        const rateChanges = [...document.querySelectorAll('#rateScheduleRows tr')].map(tr => ({
+          from: tr.querySelector('.rate-from').value,
+          rate: tr.querySelector('.rate-change').value,
+          method: tr.querySelector('.method-change').value
+        })).filter(x => x.from && x.rate);
+
+        let html = '';
+
+        /* ---------- Header ---------- */
+        html += `<div class="ps-header">
+          <div class="ps-left">
+            <div class="ps-eyebrow">SUC Assessment</div>
+            <h1 class="ps-title">PART VI: CALCULATION OF PENALTY &amp; INTEREST ON PENALTY</h1>
+          </div>
+          <div class="ps-right">
+            Interest Calculated as on
+            <b>${fmtDate(asOn)}</b>
+          </div>
+        </div>`;
+
+        /* ---------- Row 1: Basic Details | Financial Year & Dues | Payment Register ---------- */
+        html += `<div class="ps-row3">`;
+
+        // Basic Details box
+        html += `<div class="ps-box"><div class="ps-box-title">Basic Details</div>`;
+        html += `<div class="ps-kv"><span class="k">Licensee</span><span class="v">${licenseeName ? escHtml(licenseeName) : '—'}</span></div>`;
+        html += `<div class="ps-kv"><span class="k">Financial Year</span><span class="v">${basicFy ? escHtml(basicFy) : '—'}</span></div>`;
+        html += `<div class="ps-kv"><span class="k">Technology</span><span class="v">${technology ? escHtml(technology) : '—'}</span></div>`;
+        html += `</div>`;
+
+        // Financial Year & Dues box — shows the penalty basis inputs
+        html += `<div class="ps-box"><div class="ps-box-title">Financial Year &amp; Dues</div>`;
+        html += `<div class="ps-kv"><span class="k">Revenue share due</span><span class="v">${fmtINR(basis.revenueShareDue)}</span></div>`;
+        html += `<div class="ps-kv"><span class="k">Paid up to</span><span class="v">${basis.cutoff ? fmtDate(basis.cutoff) : '—'}</span></div>`;
+        html += `<div class="ps-kv"><span class="k">Amount paid</span><span class="v">${fmtINR(basis.paidUpTo)}</span></div>`;
+        html += `<div class="ps-kv"><span class="k">Shortfall</span><span class="v">${fmtINR(basis.shortfall)}</span></div>`;
+        html += `<div class="ps-kv"><span class="k">Penalty base date</span><span class="v">${basis.penaltyDate ? fmtDate(basis.penaltyDate) : '—'}</span></div>`;
+        html += `</div>`;
+
+        // Payment Register box — Table A
+        html += `<div class="ps-box"><div class="ps-box-title">Payment Register</div>`;
+        if (!tableA.length) {
+          html += `<div class="ps-empty-note">No payments recorded.</div>`;
+        } else {
+          html += `<table class="ps-mini"><thead><tr><th>#</th><th>Date</th><th class="num">Amount</th></tr></thead><tbody>`;
+          tableA.forEach((p, i) => {
+            html += `<tr><td>${i + 1}</td><td>${fmtDate(p.date)}</td><td class="num">${fmtINR(p.amount)}</td></tr>`;
+          });
+          html += `<tr class="ps-total"><td colspan="2">Total</td><td class="num">${fmtINR(basis.totalTableA)}</td></tr>`;
+          html += `</tbody></table>`;
+        }
+        html += `</div>`;
+
+        html += `</div>`; // end row 1
+
+        /* ---------- Row 2: Rate & Calculation Schedule ---------- */
+        html += `<div class="ps-row-full"><div class="ps-box-title">Rate &amp; Calculation Schedule</div>`;
+        html += `<table class="ps-mini" style="font-size:7.5pt;"><tbody>`;
+        html += `<tr><td class="k-cell">Default annual rate</td><td class="v-cell">${ratePct}%</td></tr>`;
+        html += `<tr><td class="k-cell">Default compounding</td><td class="v-cell">${method === 'annual' ? 'Annual' : 'Monthly'}</td></tr>`;
+        html += `<tr><td class="k-cell">Moratorium case</td><td class="v-cell">${moratorium ? 'Yes' : 'No'}</td></tr>`;
+        if (rateChanges.length) {
+          html += `<tr><td class="k-cell" style="vertical-align:top;">Rate / method changes</td><td class="v-cell" style="padding:0;">
+            <table class="ps-mini" style="font-size:7pt;"><thead><tr><th>Effective From</th><th class="num">Rate %</th><th>Method</th></tr></thead><tbody>`;
+          rateChanges.forEach(r => {
+            html += `<tr><td>${fmtDate(parseDateInput(r.from))}</td><td class="num">${r.rate}%</td><td>${r.method === 'annual' ? 'Annual' : 'Monthly'}</td></tr>`;
+          });
+          html += `</tbody></table></td></tr>`;
+        }
+        html += `</tbody></table>`;
+        html += `</div>`;
+
+        /* ---------- Row 3: four rounded stat cards ---------- */
+        html += `<div class="ps-row-stats">`;
+        html += `<div class="ps-stat-card"><div class="label">Penalty (${basis.penaltyPct}% of shortfall)</div><div class="value">${fmtINR(result.penaltyAmount)}</div></div>`;
+        html += `<div class="ps-stat-card"><div class="label">Payment adjusted</div><div class="value">${fmtINR(result.totalPaidAdjustment)}</div></div>`;
+        html += `<div class="ps-stat-card"><div class="label">Total interest on penalty</div><div class="value">${fmtINR(result.totalInterest)}</div></div>`;
+        html += `<div class="ps-stat-card"><div class="label">Penalty + Interest on Penalty</div><div class="value">${fmtINR(result.grandTotal)}</div></div>`;
+        html += `</div>`;
+
+        /* ---------- Row 4: Calculation of Penalty (big block) ---------- */
+        html += `<div class="ps-block"><div class="ps-block-title">Calculation of Penalty</div>`;
+        html += `<table class="ps-mini"><tbody>`;
+        html += `<tr><td class="k-cell">Revenue share due</td><td class="v-cell">${fmtINR(basis.revenueShareDue)}</td></tr>`;
+        html += `<tr><td class="k-cell">Amount paid up to ${basis.cutoff ? fmtDate(basis.cutoff) : '—'}</td><td class="v-cell">${fmtINR(basis.paidUpTo)}</td></tr>`;
+        html += `<tr><td class="k-cell">Total amount paid (Table A)</td><td class="v-cell">${fmtINR(basis.totalTableA)}</td></tr>`;
+        html += `<tr class="ps-highlight"><td class="k-cell">Shortfall</td><td class="v-cell">${fmtINR(basis.shortfall)}</td></tr>`;
+        html += `<tr><td class="k-cell">Percentage of shortfall</td><td class="v-cell">${basis.revenueShareDue > 0 ? basis.shortfallPct.toFixed(2) + '%' : '—'}</td></tr>`;
+        html += `<tr class="ps-highlight"><td class="k-cell">Penalty (${basis.penaltyPct}% of shortfall)</td><td class="v-cell">${fmtINR(basis.penalty)}</td></tr>`;
+        html += `<tr><td class="k-cell">${getAuditBaseLabel()}</td><td class="v-cell">${basis.baseDate ? fmtDate(basis.baseDate) : '—'}</td></tr>`;
+        html += `<tr><td class="k-cell">Date from which penalty is applicable</td><td class="v-cell">${basis.penaltyDate ? fmtDate(basis.penaltyDate) : '—'}</td></tr>`;
+        html += `<tr><td class="k-cell">Rate applicable</td><td class="v-cell">${ratePctAtDate(basis.penaltyDate)}%</td></tr>`;
+        html += `<tr><td class="k-cell">Interest due period</td><td class="v-cell">${basis.penaltyDate ? fmtDate(basis.penaltyDate) : '—'} to ${fmtDate(asOn)}</td></tr>`;
+        html += `<tr><td class="k-cell">Interest period (in months)</td><td class="v-cell">${basis.penaltyDate ? monthDiffInclusive(basis.penaltyDate, asOn) : '—'}</td></tr>`;
+        html += `</tbody></table>`;
+        html += `</div>`;
+
+        /* ---------- Row 5: Calculation of interest on penalty (big block with ledger) ---------- */
+        html += `<div class="ps-block ps-block-ledger"><div class="ps-block-title">Calculation of interest on penalty</div>`;
+        html += buildPrintLedgerTable(result);
+        html += `</div>`;
+
+        html += `<div class="ps-footer">Generated ${fmtDate(new Date())} — Interest on Penalty Calculator</div>`;
+
+        ps.innerHTML = html;
+      }
+
+      /* ============================================================
+         EXCEL EXPORT
+         ============================================================ */
+      function excelSerial(d) {
+        const utc = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+        return utc / 86400000 + 25569;
+      }
+
+      function exportExcel() {
+        const basis = window.__lastBasis;
+        const result = window.__lastResult;
+        if (!result) return;
+        if (typeof XLSX === 'undefined') { alert('The Excel library could not be loaded (offline?).'); return; }
+
+        const asOn = window.__lastAsOn || new Date();
+        const tableA = (window.__lastTableA || []).slice().sort((a, b) => a.date - b.date);
+        const tableB = (window.__lastTableB || []).slice().sort((a, b) => a.date - b.date);
+
+        const NC = 13;
+        const grid = [];
+        const dateAddrs = [];
+        function ensure(r) { while (grid.length < r) grid.push(new Array(NC).fill(null)); }
+        function set(r, c, v) { ensure(r); grid[r - 1][c] = v; }
+        function setDate(r, c, d) {
+          if (!d) return;
+          set(r, c, excelSerial(d));
+          dateAddrs.push(XLSX.utils.encode_cell({ r: r - 1, c: c }));
+        }
+
+        set(2, 1, 'CALCULATION OF INTEREST ON PENALTY');
+        set(3, 1, 'LICENSEE : ' + (document.getElementById('licenseeName').value || ''));
+        set(3, 6, 'FINANCIAL YEAR : ' + (document.getElementById('basicFy').value || ''));
+        set(4, 1, 'TECHNOLOGY : ' + (document.getElementById('technology').value || ''));
+
+        set(5, 1, 'A. Total Payments');
+        set(5, 8, 'B. Payment for Adjustment of Penalty');
+        set(6, 1, 'Sl No'); set(6, 2, 'Payment Date'); set(6, 4, 'Payment (Rs.)');
+        set(6, 8, 'Sl No'); set(6, 9, 'Payment Date'); set(6, 11, 'Payment (Rs.) — Adj.');
+        const rowCount = Math.max(tableA.length, tableB.length, 6);
+        tableA.forEach((p, i) => { set(7 + i, 1, i + 1); setDate(7 + i, 2, p.date); set(7 + i, 4, p.amount); });
+        tableB.forEach((p, i) => { set(7 + i, 8, i + 1); setDate(7 + i, 9, p.date); set(7 + i, 11, p.amount); });
+        const totalRowAB = 7 + rowCount;
+        set(totalRowAB, 1, 'Total Payment');
+        set(totalRowAB, 8, 'Total Payment');
+
+        let r = totalRowAB + 2;
+        set(r, 1, 'CALCULATION OF PENALTY'); r += 1;
+        function kv(label, value, isDate) {
+          set(r, 1, label);
+          if (isDate && value) setDate(r, 4, value); else set(r, 4, value);
+          r += 1;
+        }
+        kv('Revenue Share Due', basis.revenueShareDue);
+        kv('Amount Paid up to', basis.paidUpTo, false);
+        if (basis.cutoff) setDate(r - 1, 5, basis.cutoff);
+        kv('Total Amount Paid (Table A)', basis.totalTableA);
+        kv('Shortfall', basis.shortfall);
+        kv('Percentage of Shortfall', Number(basis.shortfallPct.toFixed(2)));
+        kv('Penalty (' + basis.penaltyPct + '% of Shortfall)', basis.penalty);
+        kv(getAuditBaseLabel(), basis.baseDate, true);
+        kv('Date from which Penalty is applicable', basis.penaltyDate, true);
+        kv('Rate Applicable', ratePctAtDate(basis.penaltyDate));
+        kv('Interest Due Period From', basis.penaltyDate, true);
+        kv('Interest Due Period To', asOn, true);
+        kv('Interest Period (in Months)', basis.penaltyDate ? monthDiffInclusive(basis.penaltyDate, asOn) : '');
+
+        r += 1;
+        const hdrRow = r;
+        set(hdrRow, 1, 'Source'); set(hdrRow, 3, 'Type'); set(hdrRow, 4, 'Amount Due');
+        set(hdrRow, 6, 'Payment'); set(hdrRow, 7, 'Date of Payment'); set(hdrRow, 8, 'Due Period From');
+        set(hdrRow, 9, 'Due Period To'); set(hdrRow, 10, 'Number of Months'); set(hdrRow, 11, 'Rate');
+        set(hdrRow, 12, 'Interest on Penalty');
+        const firstLedger = hdrRow + 1;
+        r = firstLedger;
+
+        function indentLabel(label) {
+          const depth = (label.match(/Interest on/g) || []).length;
+          return '    '.repeat(depth) + label;
+        }
+        function rateTextFor(row) {
+          if (!row.months) return null;
+          if (typeof row.rate === 'number') return row.rate;
+          if (row.segments && row.segments.length) return row.segments.map(s => s.rate).join(' / ');
+          return null;
+        }
+        result.ledger.forEach(row => {
+          set(r, 1, indentLabel(row.quarter));
+          set(r, 3, row.type === 'principal' ? 'Penalty' : 'Interest');
+          set(r, 4, row.amountDue);
+          set(r, 6, row.payment);
+          if (row.date) setDate(r, 7, row.date);
+          if (row.from) setDate(r, 8, row.from);
+          if (row.to) setDate(r, 9, row.to);
+          if (row.months != null) set(r, 10, row.months);
+          const rt = rateTextFor(row); if (rt !== null) set(r, 11, rt);
+          if (row.interest > 0.004) set(r, 12, row.interest);
+          r++;
+        });
+        result.outstandingRows.forEach(row => {
+          set(r, 1, indentLabel(row.quarter) + ' — outstanding');
+          set(r, 3, row.type === 'principal' ? 'Penalty' : 'Interest');
+          set(r, 4, row.balance);
+          set(r, 7, 'unpaid');
+          if (row.from) setDate(r, 8, row.from);
+          if (row.to) setDate(r, 9, row.to);
+          if (row.months != null) set(r, 10, row.months);
+          const rt = rateTextFor(row); if (rt !== null) set(r, 11, rt);
+          if (row.interest > 0.004) set(r, 12, row.interest);
+          r++;
+        });
+        const lastLedger = r - 1;
+
+        r += 1;
+        const totalRow = r;
+        set(totalRow, 1, 'Penalty + Interest on Penalty');
+        set(totalRow, 12, result.grandTotal);
+
+        const ws = XLSX.utils.aoa_to_sheet(grid);
+        dateAddrs.forEach(a => { if (ws[a]) ws[a].z = 'dd-mm-yyyy'; });
+        Object.keys(ws).forEach(a => {
+          if (a.charAt(0) === '!') return;
+          const cell = ws[a];
+          if (!cell || cell.t !== 'n') return;
+          const col = a.replace(/[0-9]/g, '');
+          if (['D', 'F', 'K', 'L'].includes(col)) cell.z = '#,##0';
+        });
+        ws['!cols'] = [
+          { wch: 26 }, { wch: 8 }, { wch: 10 }, { wch: 15 }, { wch: 12 }, { wch: 4 },
+          { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 13 }, { wch: 9 }, { wch: 16 }, { wch: 4 }
+        ];
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Interest on Penalty');
+        const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'Interest_on_Penalty.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1500);
+      }
+
+      /* ============================================================
+         SIDEBAR / PANELS / RESET
+         ============================================================ */
+      function setupSidebar() {
+        const toggle = document.getElementById('sidebarToggle');
+        const chev = toggle.querySelector('.chev');
+        const label = toggle.querySelector('.label');
+        function apply(collapsed) {
+          document.body.classList.toggle('sidebar-collapsed', collapsed);
+          toggle.setAttribute('aria-expanded', String(!collapsed));
+          chev.textContent = collapsed ? '›' : '‹';
+          label.textContent = collapsed ? 'Inputs' : 'Hide inputs';
+          try { localStorage.setItem(SIDEBAR_KEY, collapsed ? '1' : '0'); } catch (e) {}
+        }
+        let saved = false;
+        try { saved = localStorage.getItem(SIDEBAR_KEY) === '1'; } catch (e) {}
+        apply(saved);
+        toggle.addEventListener('click', function () {
+          apply(!document.body.classList.contains('sidebar-collapsed'));
+        });
+        window.__applySidebarState = apply;
+      }
+
+      function setupCollapsiblePanels() {
+        const panels = [...document.querySelectorAll('#inputCol .panel')];
+        panels.forEach(panel => {
+          const h2 = panel.querySelector('h2');
+          if (!h2) return;
+          const body = document.createElement('div');
+          body.className = 'panel-body';
+          const kids = Array.prototype.slice.call(panel.childNodes);
+          const startIdx = kids.indexOf(h2) + 1;
+          kids.slice(startIdx).forEach(n => body.appendChild(n));
+          panel.appendChild(body);
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'panel-toggle';
+          btn.setAttribute('aria-expanded', 'true');
+          btn.title = 'Collapse / expand';
+          btn.innerHTML = '<span class="chev">▾</span>';
+          btn.addEventListener('click', function () {
+            panel.classList.toggle('collapsed');
+            const collapsed = panel.classList.contains('collapsed');
+            btn.setAttribute('aria-expanded', String(!collapsed));
+            btn.querySelector('.chev').textContent = collapsed ? '▸' : '▾';
+            savePanelState();
+          });
+          h2.appendChild(btn);
+        });
+        try {
+          const raw = localStorage.getItem(PANEL_KEY);
+          if (raw) {
+            const states = JSON.parse(raw);
+            panels.forEach((panel, i) => {
+              if (!states[i]) return;
+              panel.classList.add('collapsed');
+              const btn = panel.querySelector('.panel-toggle');
+              if (btn) {
+                btn.setAttribute('aria-expanded', 'false');
+                const ch = btn.querySelector('.chev');
+                if (ch) ch.textContent = '▸';
+              }
+            });
+          }
+        } catch (e) {}
+      }
+      function savePanelState() {
+        try {
+          const states = [...document.querySelectorAll('#inputCol .panel')].map(p => p.classList.contains('collapsed'));
+          localStorage.setItem(PANEL_KEY, JSON.stringify(states));
+        } catch (e) {}
+      }
+
+      function freshStart() {
+        if (!confirm('Clear this calculation tab and start blank? Other tabs are not affected.')) return;
+        tabs[activeTabIndex].state = blankState();
+        applyRawInputs(tabs[activeTabIndex].state);
+        updatePenaltyRuleUI();
+        refreshPenaltyDateLabel();
+        document.querySelectorAll('#inputCol .panel').forEach(p => {
+          p.classList.remove('collapsed');
+          const btn = p.querySelector('.panel-toggle');
+          if (btn) {
+            btn.setAttribute('aria-expanded', 'true');
+            const ch = btn.querySelector('.chev');
+            if (ch) ch.textContent = '▾';
+          }
+        });
+        if (window.__applySidebarState) window.__applySidebarState(false);
+        document.getElementById('output').innerHTML =
+          '<div class="empty-state">Enter the revenue share due, payments, and dates, then choose Calculate.</div>';
+        document.getElementById('asOnDisplay').textContent = '—';
+        window.__lastResult = null;
+        window.__lastBasis = null;
+        window.__lastLedgerRows = null;
+        window.__lastOutstandingRows = null;
+        saveTabs();
+      }
+
+      function clearTableAFields() {
+        document.getElementById('tableARows').innerHTML = '';
+        addPayRow('tableARows', '', '');
+      }
+      function clearTableBFields() {
+        document.getElementById('tableBRows').innerHTML = '';
+        addPayRow('tableBRows', '', '');
+      }
+
+      function init() {
+        bootstrapTabs();
+        applyRawInputs(tabs[activeTabIndex].state);
+        if (!document.getElementById('asOnDate').value) {
+          document.getElementById('asOnDate').value = toInputVal(new Date());
+        }
+        renderTabBar();
+
+        setupSidebar();
+        setupCollapsiblePanels();
+
+        document.getElementById('penaltyRule').addEventListener('change', updatePenaltyRuleUI);
+        document.getElementById('auditDate').addEventListener('input', refreshPenaltyDateLabel);
+        document.getElementById('penaltyDelayDays').addEventListener('input', refreshPenaltyDateLabel);
+        document.getElementById('penaltyCustomDate').addEventListener('input', refreshPenaltyDateLabel);
+
+        document.getElementById('basicFy').addEventListener('input', function () {
+          const def = defaultPaidUpToDate(this.value);
+          if (def) document.getElementById('paidUpToDate').value = def;
+        });
+
+        document.getElementById('addTableABtn').addEventListener('click', () => addPayRow('tableARows', '', ''));
+        document.getElementById('clearTableABtn').addEventListener('click', () => { clearTableAFields(); saveState(); });
+        document.getElementById('addTableBBtn').addEventListener('click', () => addPayRow('tableBRows', '', ''));
+        document.getElementById('clearTableBBtn').addEventListener('click', () => { clearTableBFields(); saveState(); });
+
+        document.getElementById('addRateChangeBtn').addEventListener('click', () => addRateChangeRow('', '', 'monthly'));
+        document.getElementById('calcBtn').addEventListener('click', calculate);
+        document.getElementById('printBtn').addEventListener('click', () => { buildPrintSheet(); window.print(); });
+        window.addEventListener('beforeprint', buildPrintSheet);
+        document.getElementById('xlsxBtn').addEventListener('click', exportExcel);
+        document.getElementById('freshStartBtn').addEventListener('click', freshStart);
+        document.getElementById('resetBtn').addEventListener('click', () => {
+          if (!confirm('Load a worked example into this tab? Current values will be replaced.')) return;
+          applyRawInputs(exampleState());
+          updatePenaltyRuleUI();
+          refreshPenaltyDateLabel();
+          calculate();
+        });
+
+        updatePenaltyRuleUI();
+        calculate();
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+
+    })();
+  </script>
+</body>
+</html>
