@@ -1,0 +1,2077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Part VII — Payment Details &amp; Revenue Share Due Calculation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Aptos+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ---------- design tokens ---------- */
+    :root {
+      --ink: #182233;
+      --ink-soft: #4b5768;
+      --paper: #ECEEEA;
+      --paper-raised: #F7F8F5;
+      --line: #CBD0C7;
+      --line-soft: #DDE0D9;
+      --brass: #9C7327;
+      --brass-soft: #EFE3C8;
+      --teal: #2C6357;
+      --teal-soft: #DEEAE5;
+      --red: #9C3B31;
+      --red-soft: #F3DEDA;
+      --green: #2E7D32;
+      --font-sans: "Aptos Display", -apple-system, "Segoe UI", sans-serif;
+      --font-serif: "Aptos Display", -apple-system, "Segoe UI", sans-serif;
+      --font-mono: "Aptos Display", -apple-system, "Segoe UI", sans-serif;
+      --radius: 4px;
+      --shadow-card: 0 1px 3px rgba(0,0,0,0.03);
+      --transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      box-sizing: border-box;
+    }
+
+    :root[data-theme="dark"] {
+      --ink: #E9ECE6;
+      --ink-soft: #AEB6A8;
+      --paper: #161B15;
+      --paper-raised: #1E241C;
+      --line: #333B30;
+      --line-soft: #2A3128;
+      --brass: #D4A94B;
+      --brass-soft: #332A16;
+      --teal: #7FBDA9;
+      --teal-soft: #1B2C26;
+      --red: #D98A7C;
+      --red-soft: #3A211D;
+      --green: #6FCF77;
+      --shadow-card: 0 1px 3px rgba(0,0,0,0.4);
+    }
+
+    :root[data-theme="light"] {
+      --ink: #182233;
+      --ink-soft: #4b5768;
+      --paper: #ECEEEA;
+      --paper-raised: #F7F8F5;
+      --line: #CBD0C7;
+      --line-soft: #DDE0D9;
+      --brass: #9C7327;
+      --brass-soft: #EFE3C8;
+      --teal: #2C6357;
+      --teal-soft: #DEEAE5;
+      --red: #9C3B31;
+      --red-soft: #F3DEDA;
+      --green: #2E7D32;
+      --shadow-card: 0 1px 3px rgba(0,0,0,0.03);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme]) {
+        --ink: #E9ECE6;
+        --ink-soft: #AEB6A8;
+        --paper: #161B15;
+        --paper-raised: #1E241C;
+        --line: #333B30;
+        --line-soft: #2A3128;
+        --brass: #D4A94B;
+        --brass-soft: #332A16;
+        --teal: #7FBDA9;
+        --teal-soft: #1B2C26;
+        --red: #D98A7C;
+        --red-soft: #3A211D;
+        --green: #6FCF77;
+        --shadow-card: 0 1px 3px rgba(0,0,0,0.4);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      transition: var(--transition);
+    }
+
+    .wrap {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 28px 32px 70px;
+      transition: var(--transition);
+    }
+    @media (max-width: 1200px) { .wrap { padding: 24px 22px 60px; } }
+    @media (max-width: 760px) { .wrap { padding: 16px 14px 50px; } }
+
+    header.masthead {
+      border-bottom: 2px solid var(--ink);
+      padding-bottom: 18px;
+      margin-bottom: 22px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    header.masthead .title-block { max-width: 760px; }
+    header.masthead .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      letter-spacing: 0.04em;
+      color: var(--brass);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+    header.masthead h1 {
+      font-family: var(--font-serif);
+      font-weight: 600;
+      font-size: 26px;
+      margin: 0 0 6px;
+      line-height: 1.18;
+    }
+    header.masthead .asof {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--ink-soft);
+      text-align: right;
+      white-space: nowrap;
+    }
+    header.masthead .asof b { color: var(--ink); font-weight: 600; display: block; font-size: 13px; }
+
+    .theme-toggle {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      background: var(--paper-raised);
+      border: 1px solid var(--line);
+      border-radius: 40px;
+      padding: 3px;
+      cursor: pointer;
+      user-select: none;
+      flex-shrink: 0;
+      transition: var(--transition);
+    }
+    .theme-toggle button {
+      font-family: var(--font-sans);
+      font-size: 11.5px;
+      padding: 6px 14px;
+      border-radius: 40px;
+      border: none;
+      background: transparent;
+      color: var(--ink-soft);
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .theme-toggle button.active { background: var(--ink); color: var(--paper-raised); }
+    .theme-toggle button:hover:not(.active) { color: var(--ink); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 340px minmax(0, 1fr);
+      gap: 24px;
+      align-items: start;
+      transition: grid-template-columns 0.3s ease, gap 0.3s ease;
+    }
+    .grid > * { min-width: 0; align-self: start; }
+    #output { min-width: 0; width: 100%; }
+
+    #sidebar {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow: hidden;
+    }
+    #inputCol { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+
+    .sidebar-toggle {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 9px 10px;
+      background: var(--paper-raised);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      color: var(--ink-soft);
+      cursor: pointer;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      min-height: 36px;
+      transition: var(--transition);
+    }
+    .sidebar-toggle:hover { border-color: var(--brass); color: var(--brass); }
+    .sidebar-toggle .chev { font-size: 15px; line-height: 1; flex-shrink: 0; }
+    .sidebar-toggle .label { font-size: 11.5px; }
+
+    body.sidebar-collapsed .grid { grid-template-columns: 48px minmax(0, 1fr); gap: 14px; }
+    body.sidebar-collapsed #inputCol { display: none; }
+    body.sidebar-collapsed .sidebar-toggle {
+      flex-direction: column; gap: 10px; padding: 12px 4px; min-height: 0;
+    }
+    body.sidebar-collapsed .sidebar-toggle .label {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      font-size: 10.5px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 1000px) {
+      .grid { grid-template-columns: 300px minmax(0, 1fr); gap: 18px; }
+      body.sidebar-collapsed .grid { grid-template-columns: 48px minmax(0, 1fr); }
+    }
+    @media (max-width: 760px) {
+      .grid { display: block; }
+      .grid > * { width: 100%; }
+      .grid > #output { margin-top: 16px; }
+      #sidebar { margin-bottom: 16px; }
+      body.sidebar-collapsed .grid { display: block; }
+      body.sidebar-collapsed #inputCol { display: none; }
+      body.sidebar-collapsed .sidebar-toggle { flex-direction: row; gap: 8px; padding: 9px 12px; }
+      body.sidebar-collapsed .sidebar-toggle .label {
+        writing-mode: horizontal-tb; transform: none; text-transform: none;
+        letter-spacing: 0.02em; font-size: 12px;
+      }
+    }
+
+    .panel {
+      background: var(--paper-raised);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px 16px 18px;
+      width: 100%;
+      box-shadow: var(--shadow-card);
+      transition: var(--transition);
+    }
+    .panel h2 {
+      font-family: var(--font-serif);
+      font-size: 15px;
+      font-weight: 600;
+      margin: 0 0 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .panel.collapsed { padding-bottom: 14px; }
+    .panel.collapsed .panel-body { display: none; }
+    .panel.collapsed h2 { margin-bottom: 0; }
+
+    .panel-toggle {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--line);
+      background: var(--paper);
+      color: var(--ink-soft);
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 11px;
+      line-height: 1;
+      padding: 0;
+      transition: var(--transition);
+    }
+    .panel-toggle:hover { border-color: var(--brass); color: var(--brass); }
+
+    label {
+      display: block;
+      font-size: 12px;
+      color: var(--ink-soft);
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+    input[type=text],
+    input[type=number],
+    input[type=date],
+    select {
+      width: 100%;
+      padding: 8px 9px;
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--font-mono);
+      font-size: 13.5px;
+      transition: var(--transition);
+    }
+    input:focus, select:focus {
+      outline: 2px solid var(--brass);
+      outline-offset: 1px;
+      border-color: var(--brass);
+    }
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+    .input-hint { font-size: 11px; color: var(--ink-soft); margin-top: 8px; opacity: 0.9; }
+
+    .btn-row { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+    button.primary {
+      flex: 1;
+      padding: 11px 14px;
+      background: var(--ink);
+      color: var(--paper-raised);
+      border: none;
+      border-radius: 3px;
+      font-family: var(--font-sans);
+      font-weight: 600;
+      font-size: 13.5px;
+      cursor: pointer;
+      letter-spacing: 0.01em;
+      transition: var(--transition);
+    }
+    button.primary:hover { background: var(--brass); color: #1a1200; }
+    button.ghost {
+      padding: 10px 14px;
+      background: transparent;
+      color: var(--ink-soft);
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      font-family: var(--font-sans);
+      font-size: 12.5px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    button.ghost:hover { border-color: var(--ink); color: var(--ink); }
+    button.ghost.warn:hover { border-color: var(--red); color: var(--red); }
+
+    .col-chip-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      background: var(--paper);
+      margin-bottom: 6px;
+      font-size: 12.5px;
+      transition: var(--transition);
+    }
+    .col-chip-row .name { font-weight: 600; color: var(--ink); }
+    .col-chip-row .rm-btn {
+      width: 22px;
+      height: 22px;
+      border: 1px solid var(--line);
+      background: var(--paper-raised);
+      color: var(--red);
+      border-radius: 2px;
+      cursor: pointer;
+      font-size: 13px;
+      line-height: 1;
+      padding: 0;
+      transition: var(--transition);
+    }
+    .col-chip-row .rm-btn:hover { background: var(--red-soft); }
+
+    /* ============================================================
+       THE DOCUMENT
+       ============================================================ */
+    .doc {
+      background: var(--paper-raised);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 22px 24px 28px;
+      box-shadow: var(--shadow-card);
+      transition: var(--transition);
+    }
+    @media (max-width: 760px) { .doc { padding: 14px 12px 18px; } }
+
+    .doc-title {
+      text-align: center;
+      font-family: var(--font-serif);
+      font-size: 16px;
+      font-weight: 700;
+      margin: 0 0 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--ink);
+      letter-spacing: 0.01em;
+      text-transform: uppercase;
+    }
+
+    /* Isolated banner headings — detached from tables above and below */
+    .doc-banner {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      text-align: center;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 12.5px;
+      padding: 14px 12px;
+      margin: 40px 0 26px;
+      color: var(--ink);
+      transition: var(--transition);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-card);
+    }
+
+    .tbl-scroll { width: 100%; overflow-x: auto; margin: 0 0 6px; }
+
+    table.doc-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--paper-raised);
+      transition: var(--transition);
+    }
+    table.doc-table th,
+    table.doc-table td {
+      border: 1px solid var(--line);
+      padding: 5px 8px;
+      font-size: 12.5px;
+      vertical-align: middle;
+      transition: var(--transition);
+    }
+    table.doc-table thead th {
+      background: var(--paper);
+      font-weight: 700;
+      text-align: center;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+    table.doc-table th.num, table.doc-table td.num { text-align: right; }
+    table.doc-table th.lblcol, table.doc-table th.refcol { text-align: left; }
+
+    table.doc-table td.lblcell {
+      font-weight: 600;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+    table.doc-table td.refcell {
+      text-align: center;
+      color: var(--brass);
+      font-weight: 700;
+      width: 52px;
+      white-space: nowrap;
+      font-family: var(--font-mono);
+    }
+    table.doc-table td.computed {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      background: var(--paper);
+      white-space: nowrap;
+    }
+    table.doc-table td.computed.totalcol { background: var(--brass-soft); }
+    table.doc-table thead th.totalcol { background: var(--brass-soft); }
+
+    table.doc-table tr.titlerow td {
+      background: rgba(128, 128, 128, 0.22);
+      font-family: var(--font-serif);
+      font-weight: 700;
+      text-align: left;
+      vertical-align: middle;
+      padding: 7px 12px;
+      font-size: 12.5px;
+      letter-spacing: 0.03em;
+      color: var(--ink);
+    }
+
+    table.doc-table tr.netpayrow td {
+      background: var(--teal-soft);
+      font-weight: 700;
+    }
+    table.doc-table tr.netpayrow td.computed.totalcol { background: var(--brass-soft); }
+
+    table.meta-table td.lblcell { width: 30%; }
+
+    table.dues-table { min-width: 640px; }
+    table.rate-table { min-width: 460px; }
+
+    table.doc-table input {
+      width: 100%;
+      min-width: 88px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--ink);
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      padding: 3px 5px;
+      border-radius: 2px;
+      text-align: right;
+      transition: var(--transition);
+    }
+    table.doc-table input:hover { border-color: var(--line); }
+    table.doc-table input:focus {
+      outline: 2px solid var(--brass);
+      outline-offset: 0;
+      background: var(--paper);
+      border-color: var(--brass);
+    }
+    table.doc-table input.txt {
+      text-align: left;
+      font-family: var(--font-sans);
+      font-weight: 500;
+      min-width: 0;
+    }
+
+    details.notes {
+      margin-top: 30px;
+      background: var(--paper-raised);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      box-shadow: var(--shadow-card);
+      transition: var(--transition);
+    }
+    details.notes summary {
+      cursor: pointer;
+      font-family: var(--font-serif);
+      font-weight: 600;
+      font-size: 14.5px;
+    }
+    details.notes ul { margin: 12px 0 0; padding-left: 20px; font-size: 13px; color: var(--ink-soft); }
+    details.notes li { margin-bottom: 8px; }
+    details.notes code {
+      font-family: var(--font-mono);
+      background: var(--paper);
+      padding: 1px 5px;
+      border-radius: 2px;
+      font-size: 12px;
+    }
+
+    footer {
+      margin-top: 44px;
+      font-size: 11.5px;
+      color: var(--ink-soft);
+      text-align: center;
+    }
+
+    /* ============================================================
+       PRINT SHEET
+       ============================================================ */
+    #printSheet { display: none; }
+
+    @page { size: portrait; margin: 9mm 8mm; }
+
+    .ps-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-bottom: 2px solid #000;
+      padding-bottom: 4px;
+      margin-bottom: 7px;
+    }
+    .ps-header .ps-title {
+      font-family: var(--font-serif);
+      font-size: 13pt;
+      font-weight: 700;
+      color: #000;
+      margin: 0;
+      line-height: 1.15;
+    }
+    .ps-header .ps-eyebrow {
+      font-size: 7.5pt;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #000;
+      margin-bottom: 2px;
+    }
+    .ps-header .ps-asof {
+      font-size: 8.5pt;
+      font-weight: 700;
+      color: #000;
+      text-align: right;
+      white-space: nowrap;
+    }
+    .ps-header .ps-asof span { font-weight: 400; display: block; font-size: 7.5pt; }
+
+    .ps-row {
+      display: grid;
+      gap: 5px;
+      margin-bottom: 5px;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    .ps-row.cols-1 { grid-template-columns: 1fr; }
+    .ps-row.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ps-row.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+    .ps-card {
+      border: 1.25px solid #000;
+      border-radius: 2px;
+      padding: 5px 7px 6px;
+      break-inside: avoid;
+      min-width: 0;
+    }
+    .ps-card h3 {
+      font-size: 8.5pt;
+      font-weight: 700;
+      color: #000;
+      margin: 0 0 4px;
+      padding-bottom: 3px;
+      border-bottom: 1px solid #000;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      text-align: left;
+    }
+    .ps-kv {
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      font-size: 8pt;
+      color: #000;
+      padding: 1.5px 0;
+      line-height: 1.35;
+    }
+    .ps-kv .k { color: #000; }
+    .ps-kv .v { font-weight: 700; color: #000; text-align: right; }
+
+    /* Summary boxes in the print sheet — larger amount display */
+    .ps-summary-box .ps-kv {
+      font-size: 9pt;
+      padding: 4px 0 2px;
+    }
+    .ps-summary-box .ps-kv .v {
+      font-size: 10pt;
+      font-weight: 700;
+    }
+
+    table.ps-mini {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 7.5pt;
+      color: #000;
+      margin-top: 2px;
+      table-layout: fixed;
+    }
+    table.ps-mini th {
+      text-align: left;
+      font-weight: 700;
+      border-bottom: 1px solid #000;
+      padding: 1.5px 3px;
+      color: #000;
+      overflow-wrap: break-word;
+    }
+    table.ps-mini th.num { text-align: right; }
+    table.ps-mini td {
+      padding: 1.5px 3px;
+      border-bottom: 0.5px solid #555;
+      color: #000;
+      overflow-wrap: break-word;
+    }
+    table.ps-mini td.num { text-align: right; }
+    table.ps-mini tr.ps-total td {
+      border-top: 1px solid #000;
+      border-bottom: none;
+      font-weight: 700;
+      padding-top: 3px;
+    }
+    table.ps-mini tr.ps-titlerow td {
+      background: #ddd;
+      font-weight: 700;
+      text-align: left;
+      padding: 3px 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      font-size: 7pt;
+    }
+
+    /* Tables must not be sliced across a page boundary */
+    .ps-ledger-card { break-inside: avoid; page-break-inside: avoid; }
+    .ps-footer {
+      margin-top: 6px;
+      font-size: 6.5pt;
+      color: #000;
+      text-align: right;
+    }
+
+    @media print {
+      html, body { background: #fff !important; color: #000 !important; }
+      .no-print, .wrap > .grid, .wrap > header.masthead, details.notes, .wrap > footer {
+        display: none !important;
+      }
+      .wrap { max-width: none; padding: 0; margin: 0; }
+      #printSheet { display: block !important; color: #000 !important; }
+      #printSheet * {
+        color: #000 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+      }
+      #printSheet table.ps-mini tr.ps-titlerow td {
+        background: #ddd !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <header class="masthead">
+      <div class="title-block">
+        <div class="eyebrow">SUC ASSESSMENT</div>
+        <h1>PART VII: PAYMENT DETAILS AND REVENUE SHARE DUE CALCULATION</h1>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <button class="ghost no-print" id="freshStartBtn" title="Delete browser cache and start with a blank form" style="padding:8px 14px; font-size:12.5px;">RESET ALL</button>
+        <div class="asof no-print">
+          Dues computed upto<br><b id="asOnDisplay">—</b>
+        </div>
+        <div class="theme-toggle no-print" id="themeToggle" role="group" aria-label="Theme">
+          <button type="button" data-theme-value="light">Light</button>
+          <button type="button" data-theme-value="dark">Dark</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="grid">
+
+      <aside class="sidebar no-print" id="sidebar">
+        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle input sidebar" aria-expanded="true">
+          <span class="chev">‹</span>
+          <span class="label">Hide inputs</span>
+        </button>
+
+        <div id="inputCol">
+
+          <div class="panel">
+            <h2>Computation</h2>
+            <div class="field">
+              <label for="asOnDate">Dues computed upto</label>
+              <input type="date" id="asOnDate">
+            </div>
+            <div class="input-hint">Drives the “Total Interest upto …” and “Total SUC Dues as on …” row labels.</div>
+          </div>
+
+          <div class="panel">
+            <h2>Spectrum columns</h2>
+            <div class="field">
+              <label for="spectrumSelect">Add a spectrum column</label>
+              <div style="display:flex; gap:6px;">
+                <select id="spectrumSelect" style="flex:1;">
+                  <option value="">— Select —</option>
+                  <option value="GSM Access">GSM Access</option>
+                  <option value="GSM MWA">GSM MWA</option>
+                  <option value="GSM MWB">GSM MWB</option>
+                  <option value="E-Band">E-Band</option>
+                  <option value="Other">Other</option>
+                </select>
+                <button type="button" class="ghost" id="addColBtn" style="padding:8px 12px; font-size:12.5px;">+ Add</button>
+              </div>
+            </div>
+            <div id="colList"></div>
+            <div class="input-hint">Each column appears between <b>Spectrum Type</b> and <b>Total</b> in every rate and dues table. Total re-sums automatically.</div>
+          </div>
+
+          <div class="panel">
+            <h2>Actions</h2>
+            <div class="btn-row" style="margin-top:0">
+              <button class="primary" id="calcBtn">Recalculate</button>
+              <button class="ghost" id="clearBtn">Clear values</button>
+            </div>
+            <div class="btn-row">
+              <button class="ghost" id="printBtn" style="flex:1;">Print / save PDF</button>
+              <button class="ghost" id="xlsxBtn" style="flex:1;">Export to Excel</button>
+            </div>
+          </div>
+
+        </div>
+      </aside>
+
+      <div id="output"></div>
+
+    </div>
+
+    <div id="printSheet"></div>
+
+    <details class="notes no-print">
+      <summary>How this form works &amp; what gets computed automatically</summary>
+      <ul>
+        <li><b>Fillable vs. computed.</b> Only <b>Net Principal Due</b>, <b>Total Interest</b> and <b>Total SUC Dues</b> are read-only — they are derived. Everything else (particulars, AGR items, SUC rates, SUC Dues Payable, SUC Dues Paid, Penalty, Interest on Principal, Interest on Penalty) is fillable.</li>
+        <li><b>Disputed = Combined − Undisputed.</b> Every cell of the Disputed Dues table is computed as <code>SUC Dues as per CCA − Undisputed SUC Dues</code>, column by column and row by row.</li>
+        <li><b>Formulas.</b> <code>A = Net Principal Due = Payable − Paid</code>. <code>B = Penalty</code>. <code>A1 = Interest on Principal</code>. <code>B1 = Interest on Penalty</code>. <code>Total Interest = A1 + B1</code>. <code>Total SUC Dues = A + B + A1 + B1</code>. The final <b>Net SUC Due Payable (Undisputed)</b> row mirrors the Undisputed Total SUC Dues row.</li>
+        <li><b>Rounding.</b> Amounts are displayed rounded <b>up</b> to the next higher rupee — no decimals are shown. All calculations use full precision internally.</li>
+        <li><b>Paste from Excel.</b> Copy any rectangular block from Excel and paste it into the <i>first</i> cell of a table — values fan out across rows and columns. Currency symbols, thousands separators and <code>%</code> signs are stripped automatically.</li>
+        <li><b>AGR total formatting.</b> When you leave an AGR Total field, its value is rounded up and re-displayed in Indian numbering format (e.g. <code>34,05,34,008</code>).</li>
+        <li><b>Adding / deleting columns.</b> Use the <b>Spectrum columns</b> dropdown in the sidebar.</li>
+        <li><b>Print / PDF.</b> The <b>Print / save PDF</b> button builds a black-and-white print-only sheet and opens the browser print dialog. Tables are kept whole — a table that does not fit on the remaining space moves to the next page instead of splitting.</li>
+        <li><b>Excel export.</b> Writes the whole form into an <code>.xlsx</code> workbook with live formulas for every total.</li>
+        <li><b>Persistence.</b> Everything is remembered in your browser. <b>RESET ALL</b> wipes the saved cache and returns a blank form.</li>
+      </ul>
+    </details>
+
+    <footer>Amounts rounded up to the next higher rupee; calculations use full precision internally.</footer>
+
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    /* ============================================================
+       THEME TOGGLE
+       ============================================================ */
+    (function themeInit() {
+      var root = document.documentElement;
+      var toggle = document.getElementById('themeToggle');
+
+      function applyTheme(theme) {
+        if (theme === 'dark') root.setAttribute('data-theme', 'dark');
+        else root.setAttribute('data-theme', 'light');
+        var btns = toggle.querySelectorAll('button[data-theme-value]');
+        for (var i = 0; i < btns.length; i++) {
+          btns[i].classList.toggle('active', btns[i].getAttribute('data-theme-value') === theme);
+        }
+      }
+
+      var saved = null;
+      try { saved = localStorage.getItem('sie_theme'); } catch (e) {}
+      var startTheme;
+      if (saved === 'dark' || saved === 'light') startTheme = saved;
+      else startTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      applyTheme(startTheme);
+
+      toggle.addEventListener('click', function (e) {
+        var btn = e.target.closest('button[data-theme-value]');
+        if (!btn) return;
+        var theme = btn.getAttribute('data-theme-value');
+        applyTheme(theme);
+        try { localStorage.setItem('sie_theme', theme); } catch (err) {}
+      });
+
+      var mq = window.matchMedia('(prefers-color-scheme: dark)');
+      var mqListener = function (e) {
+        var hasSaved = null;
+        try { hasSaved = localStorage.getItem('sie_theme'); } catch (err) {}
+        if (!hasSaved) applyTheme(e.matches ? 'dark' : 'light');
+      };
+      if (mq.addEventListener) mq.addEventListener('change', mqListener);
+      else if (mq.addListener) mq.addListener(mqListener);
+    })();
+
+    /* ============================================================
+       HELPERS
+       ============================================================ */
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+    function parseDateInput(val) {
+      if (!val) return null;
+      var p = val.split('-').map(Number);
+      if (p.length !== 3 || p.some(isNaN)) return null;
+      return new Date(p[0], p[1] - 1, p[2]);
+    }
+    function toInputVal(d) {
+      if (!d) return '';
+      var yyyy = d.getFullYear(),
+          mm = String(d.getMonth() + 1).padStart(2, '0'),
+          dd = String(d.getDate()).padStart(2, '0');
+      return yyyy + '-' + mm + '-' + dd;
+    }
+    function fmtDate(d) {
+      if (!d) return '—';
+      var dd = String(d.getDate()).padStart(2, '0'),
+          mm = String(d.getMonth() + 1).padStart(2, '0');
+      return dd + '-' + mm + '-' + d.getFullYear();
+    }
+    var MONTHS_LONG = ['January','February','March','April','May','June','July',
+                       'August','September','October','November','December'];
+    function longDateStr() {
+      var d = parseDateInput(state.asOn);
+      if (!d) return '—';
+      return d.getDate() + ' ' + MONTHS_LONG[d.getMonth()] + ' ' + d.getFullYear();
+    }
+
+    /* Indian numbering — group last three, then pairs: 12,34,56,789.
+       Value is rounded UP to the next higher rupee. */
+    function formatIndianNumber(n) {
+      if (!isFinite(n)) n = 0;
+      var v = Math.ceil(n);          /* round UP to next higher digit */
+      var neg = v < 0;
+      v = Math.abs(v);
+      var s = String(v);
+      if (s.length <= 3) return (neg ? '-' : '') + s;
+      var lastThree = s.slice(-3);
+      var rest = s.slice(0, -3);
+      rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',');
+      return (neg ? '-' : '') + rest + ',' + lastThree;
+    }
+
+    /* Display-only formatter. Money is shown to the next HIGHER rupee
+       (ceiling) — no decimals anywhere. Underlying values keep full
+       precision for calculation. */
+    var moneyFmt = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    function fmtMoney(n) {
+      if (!isFinite(n)) n = 0;
+      var v = Math.ceil(n);          /* round UP to next higher digit */
+      var neg = v < 0;
+      return (neg ? '\u20B9 -' : '\u20B9 ') + moneyFmt.format(Math.abs(v));
+    }
+
+    function cleanNumStr(v) {
+      if (v == null) return '';
+      var s = String(v).trim();
+      if (!s) return '';
+      var neg = false;
+      if (/^\(.*\)$/.test(s)) { neg = true; s = s.slice(1, -1); }
+      s = s.replace(/[\u20B9,\s]/g, '').replace(/%/g, '');
+      if (s.charAt(0) === '-') { neg = true; s = s.slice(1); }
+      s = s.replace(/[^0-9.]/g, '');
+      var parts = s.split('.');
+      if (parts.length > 2) s = parts[0] + '.' + parts.slice(1).join('');
+      if (!s || s === '.') return '';
+      return (neg ? '-' : '') + s;
+    }
+    function parseNum(v) {
+      var s = cleanNumStr(v);
+      if (!s) return 0;
+      var n = parseFloat(s);
+      return isFinite(n) ? n : 0;
+    }
+
+    /* ============================================================
+       STATE
+       ============================================================ */
+    var STORE_KEY   = 'pvii_v3_state';
+    var PANEL_KEY   = 'sie_panels_v1';
+    var SIDEBAR_KEY = 'sie_sidebar_collapsed_v1';
+
+    function blankState() {
+      var cols = [{ name: 'GSM Access' }, { name: 'MWA' }, { name: 'MWB' }];
+      var z = function () { return cols.map(function () { return ''; }); };
+      return {
+        meta: {
+          serviceProvider: '', licensee: '', phase: '',
+          service: '', dateOfAssessment: '', licenseNumber: ''
+        },
+        asOn: '',
+        agr: [
+          { label: 'GR as per DoT', value: '' },
+          { label: 'GR as per DoT (Audited)', value: '' },
+          { label: 'AGR as per DoT', value: '' },
+          { label: 'AGR for spectrum usage charges for GSM', value: '' }
+        ],
+        columns: cols,
+        rateCombined:   [z(), z(), z(), z()],
+        rateUndisputed: [z(), z(), z(), z()],
+        duesCombined:   { payable: z(), paid: z(), penalty: z(), intPrincipal: z(), intPenalty: z() },
+        duesUndisputed: { payable: z(), paid: z(), penalty: z(), intPrincipal: z(), intPenalty: z() }
+      };
+    }
+
+    function normalizeState(s) {
+      var out = blankState();
+      if (!s) return out;
+
+      out.meta = Object.assign(out.meta, s.meta || {});
+      out.asOn = s.asOn || '';
+
+      if (Array.isArray(s.agr) && s.agr.length) {
+        out.agr = out.agr.map(function (def, i) {
+          var src = s.agr[i] || {};
+          return { label: src.label || def.label, value: src.value != null ? src.value : '' };
+        });
+      }
+
+      if (Array.isArray(s.columns) && s.columns.length) {
+        out.columns = s.columns.map(function (c, i) {
+          var nm = typeof c === 'string' ? c : (c && c.name);
+          return { name: nm || ('Column ' + (i + 1)) };
+        });
+      }
+
+      var n = out.columns.length;
+      function pad(a) {
+        var x = Array.isArray(a) ? a.slice(0, n) : [];
+        while (x.length < n) x.push('');
+        return x;
+      }
+
+      out.rateCombined   = [0, 1, 2, 3].map(function (i) { return pad(s.rateCombined && s.rateCombined[i]); });
+      out.rateUndisputed = [0, 1, 2, 3].map(function (i) { return pad(s.rateUndisputed && s.rateUndisputed[i]); });
+
+      ['duesCombined', 'duesUndisputed'].forEach(function (k) {
+        var src = s[k] || {};
+        out[k] = {
+          payable: pad(src.payable),
+          paid: pad(src.paid),
+          penalty: pad(src.penalty),
+          intPrincipal: pad(src.intPrincipal),
+          intPenalty: pad(src.intPenalty)
+        };
+      });
+
+      return out;
+    }
+
+    var state = blankState();
+
+    /* ============================================================
+       TABLE ROW DEFINITIONS
+       A = Net Principal Due
+       B = Penalty
+       A1 = Interest on Principal
+       B1 = Interest on Penalty
+       ============================================================ */
+    var DUES_ROWS = [
+      { key: 'payable',       label: 'SUC Dues Payable',      ref: '',            input: true },
+      { key: 'paid',          label: 'SUC Dues Paid',         ref: '',            input: true },
+      { key: 'net',           label: 'Net Principal Due',     ref: 'A',           input: false },
+      { key: 'penalty',       label: 'Penalty',               ref: 'B',           input: true },
+      { key: 'intPrincipal',  label: 'Interest on Principal', ref: 'A1',          input: true },
+      { key: 'intPenalty',    label: 'Interest on Penalty',   ref: 'B1',          input: true },
+      { key: 'totalInterest', label: 'Total Interest',        ref: 'A1+B1',       input: false, labelKey: 'duesDate', datePrefix: ' upto ' },
+      { key: 'totalDues',     label: 'Total SUC Dues',        ref: 'A+B+A1+B1',   input: false, labelKey: 'duesDate', datePrefix: ' as on ' }
+    ];
+
+    /* ============================================================
+       HTML BUILDERS
+       ============================================================ */
+    function rateTableHTML(id, data, title) {
+      var nCols = 1 + state.columns.length;
+      var h = '<div class="tbl-scroll"><table class="doc-table rate-table" id="' + id + '"><tbody>';
+      if (title) {
+        h += '<tr class="titlerow"><td colspan="' + nCols + '">' + esc(title) + '</td></tr>';
+      }
+      h += '<tr><th class="lblcol" style="text-align:center;">Quarter</th>';
+      state.columns.forEach(function (c, ci) {
+        h += '<th class="num" data-colhead="' + ci + '">' + esc(c.name) + '</th>';
+      });
+      h += '</tr>';
+      for (var r = 0; r < 4; r++) {
+        h += '<tr><td class="lblcell" style="text-align:center;">Q' + (r + 1) + '</td>';
+        for (var ci = 0; ci < state.columns.length; ci++) {
+          var v = (data[r] && data[r][ci]) || '';
+          h += '<td class="num"><input type="text" inputmode="decimal" data-r="' + r + '" data-c="' + ci +
+               '" data-num="1" value="' + esc(v) + '"></td>';
+        }
+        h += '</tr>';
+      }
+      h += '</tbody></table></div>';
+      return h;
+    }
+
+    function rowLabelHTML(row) {
+      if (row.labelKey === 'duesDate') {
+        var prefix = row.datePrefix != null ? row.datePrefix : ' upto ';
+        return esc(row.label) + prefix + '<span data-label="duesDate">—</span>';
+      }
+      return esc(row.label);
+    }
+
+    function duesTableHTML(id, d, opts) {
+      opts = opts || {};
+      var readonly = !!opts.readonly;
+      var withNetPayable = !!opts.withNetPayable;
+      var title = opts.title || '';
+      var nCols = state.columns.length;
+      var spanAll = nCols + 3;
+
+      var h = '<div class="tbl-scroll"><table class="doc-table dues-table" id="' + id + '"><tbody>';
+      if (title) {
+        h += '<tr class="titlerow"><td colspan="' + spanAll + '">' + esc(title) + '</td></tr>';
+      }
+      h += '<tr>';
+      h += '<th class="lblcol">Spectrum Type</th><th class="refcol"></th>';
+      state.columns.forEach(function (c, ci) {
+        h += '<th class="num" data-colhead="' + ci + '">' + esc(c.name) + '</th>';
+      });
+      h += '<th class="num totalcol">Total</th></tr>';
+
+      var r = 0;
+      DUES_ROWS.forEach(function (row) {
+        h += '<tr>';
+        h += '<td class="lblcell">' + rowLabelHTML(row) + '</td>';
+        h += '<td class="refcell">' + esc(row.ref) + '</td>';
+        for (var ci = 0; ci < nCols; ci++) {
+          if (row.input && !readonly) {
+            var v = (d && d[row.key] && d[row.key][ci]) || '';
+            h += '<td class="num"><input type="text" inputmode="decimal" data-r="' + r + '" data-c="' + ci +
+                 '" data-num="1" value="' + esc(v) + '"></td>';
+          } else {
+            h += '<td class="num computed" data-out="' + row.key + '|' + ci + '">—</td>';
+          }
+        }
+        h += '<td class="num computed totalcol" data-out="' + row.key + '|T">—</td>';
+        h += '</tr>';
+        if (row.input) r++;
+      });
+
+      if (withNetPayable) {
+        h += '<tr class="netpayrow"><td class="lblcell">Net SUC Due Payable (Undisputed)</td><td class="refcell"></td>';
+        for (var ci2 = 0; ci2 < nCols; ci2++) {
+          h += '<td class="num computed" data-out="netPayable|' + ci2 + '">—</td>';
+        }
+        h += '<td class="num computed totalcol" data-out="netPayable|T">—</td></tr>';
+      }
+
+      h += '</tbody></table></div>';
+      return h;
+    }
+
+    function docHTML() {
+      var s = state;
+      var h = '<div class="doc">';
+
+      h += '<h2 class="doc-title">Part VII: Payment Details and Revenue Share Due Calculation</h2>';
+
+      /* ---- (i) Basic Details ---- */
+      h += '<table class="doc-table meta-table"><tbody>';
+      h += '<tr class="titlerow"><td colspan="2">(i) Basic Details</td></tr>';
+      var metaRows = [
+        ['serviceProvider', 'Service Provider'],
+        ['licensee', 'Licensee'],
+        ['phase', 'Phase'],
+        ['service', 'Service'],
+        ['dateOfAssessment', 'Date of Assessment'],
+        ['licenseNumber', 'License Number']
+      ];
+      metaRows.forEach(function (mr) {
+        var k = mr[0], lbl = mr[1];
+        h += '<tr><td class="lblcell">' + esc(lbl) + ':</td>' +
+             '<td><input class="txt" type="text" id="m_' + k + '" value="' + esc(s.meta[k] || '') + '"></td></tr>';
+      });
+      h += '</tbody></table>';
+
+      /* ---- (ii) AGR ---- */
+      h += '<div class="tbl-scroll"><table class="doc-table" id="agrTable"><tbody>';
+      h += '<tr class="titlerow"><td colspan="2">(ii) AGR Details from Audited Statement of Revenue</td></tr>';
+      h += '<tr><th class="lblcol">Item</th><th class="num" style="width:34%;">Total</th></tr>';
+      s.agr.forEach(function (row, i) {
+        h += '<tr><td><input class="txt" type="text" id="agr_label_' + i + '" value="' + esc(row.label) + '"></td>' +
+             '<td class="num"><input type="text" inputmode="decimal" id="agr_value_' + i +
+             '" data-r="' + i + '" data-c="0" data-num="1" data-indian="1" value="' + esc(row.value) + '"></td></tr>';
+      });
+      h += '</tbody></table></div>';
+
+      /* ---- banner: SUC Dues as per CCA ---- */
+      h += '<div class="doc-banner">SUC Dues as per CCA, Kerala (Disputed + Undisputed)</div>';
+
+      /* ---- (iii) SUC Rates (combined) ---- */
+      h += rateTableHTML('rateCombined', s.rateCombined, '(iii) SUC Rates');
+
+      /* ---- (iv) Summary of SUC Dues (combined) ---- */
+      h += duesTableHTML('duesCombined', s.duesCombined, { title: '(iv) Summary of SUC Dues' });
+
+      /* ---- banner: UNDISPUTED ---- */
+      h += '<div class="doc-banner">UNDISPUTED SUC DUES</div>';
+
+      /* ---- (v) SUC Rates (undisputed) ---- */
+      h += rateTableHTML('rateUndisputed', s.rateUndisputed, '(v) SUC Rates');
+
+      /* ---- (vi) Summary of SUC Dues (undisputed) ---- */
+      h += duesTableHTML('duesUndisputed', s.duesUndisputed, { title: '(vi) Summary of SUC Dues' });
+
+      /* ---- banner: DISPUTED ---- */
+      h += '<div class="doc-banner">DISPUTED DUES</div>';
+
+      /* ---- (vii) Summary of SUC Dues (disputed, read-only) ---- */
+      h += duesTableHTML('duesDisputed', null, {
+        readonly: true,
+        withNetPayable: true,
+        title: '(vii) Summary of SUC Dues'
+      });
+
+      h += '</div>';
+      return h;
+    }
+
+    /* ============================================================
+       READ / WRITE
+       ============================================================ */
+    function readRateTable(id) {
+      var t = document.getElementById(id);
+      var out = [];
+      for (var r = 0; r < 4; r++) {
+        var row = [];
+        for (var c = 0; c < state.columns.length; c++) {
+          var inp = t ? t.querySelector('input[data-r="' + r + '"][data-c="' + c + '"]') : null;
+          row.push(inp ? inp.value : '');
+        }
+        out.push(row);
+      }
+      return out;
+    }
+
+    function readDues(id) {
+      var t = document.getElementById(id);
+      var keys = ['payable', 'paid', 'penalty', 'intPrincipal', 'intPenalty'];
+      var d = {};
+      keys.forEach(function (k, r) {
+        d[k] = [];
+        for (var ci = 0; ci < state.columns.length; ci++) {
+          var inp = t ? t.querySelector('input[data-r="' + r + '"][data-c="' + ci + '"]') : null;
+          d[k].push(inp ? inp.value : '');
+        }
+      });
+      return d;
+    }
+
+    function collectState() {
+      var g = function (id) { var el = document.getElementById(id); return el ? el.value : ''; };
+
+      state.meta.serviceProvider    = g('m_serviceProvider');
+      state.meta.licensee           = g('m_licensee');
+      state.meta.phase              = g('m_phase');
+      state.meta.service            = g('m_service');
+      state.meta.dateOfAssessment   = g('m_dateOfAssessment');
+      state.meta.licenseNumber      = g('m_licenseNumber');
+
+      var asOn = g('asOnDate');
+      if (asOn) state.asOn = asOn;
+
+      state.agr.forEach(function (row, i) {
+        var l = g('agr_label_' + i);
+        if (l) row.label = l;
+        row.value = g('agr_value_' + i);
+      });
+
+      state.rateCombined   = readRateTable('rateCombined');
+      state.rateUndisputed = readRateTable('rateUndisputed');
+      state.duesCombined   = readDues('duesCombined');
+      state.duesUndisputed = readDues('duesUndisputed');
+      return state;
+    }
+
+    function toNums(d) {
+      var o = {};
+      ['payable', 'paid', 'penalty', 'intPrincipal', 'intPenalty'].forEach(function (k) {
+        o[k] = (d[k] || []).map(parseNum);
+      });
+      return o;
+    }
+    function sum(a) { return a.reduce(function (s, v) { return s + v; }, 0); }
+
+    function derive(d) {
+      var n = d.payable.length;
+      var net = [], totalInterest = [], totalDues = [];
+      for (var i = 0; i < n; i++) {
+        net[i] = d.payable[i] - d.paid[i];
+        totalInterest[i] = d.intPrincipal[i] + d.intPenalty[i];
+        /* Total SUC Dues = A + B + A1 + B1 */
+        totalDues[i] = net[i] + d.penalty[i] + d.intPrincipal[i] + d.intPenalty[i];
+      }
+      return {
+        payable: d.payable, paid: d.paid, penalty: d.penalty,
+        intPrincipal: d.intPrincipal, intPenalty: d.intPenalty,
+        net: net, totalInterest: totalInterest, totalDues: totalDues,
+        totals: {
+          payable: sum(d.payable), paid: sum(d.paid), penalty: sum(d.penalty),
+          intPrincipal: sum(d.intPrincipal), intPenalty: sum(d.intPenalty),
+          net: sum(net), totalInterest: sum(totalInterest), totalDues: sum(totalDues)
+        }
+      };
+    }
+
+    function computeAll() {
+      var combined = toNums(readDues('duesCombined'));
+      var undis    = toNums(readDues('duesUndisputed'));
+      var disp = {};
+      ['payable', 'paid', 'penalty', 'intPrincipal', 'intPenalty'].forEach(function (k) {
+        disp[k] = combined[k].map(function (v, i) { return v - undis[k][i]; });
+      });
+      return {
+        combined: derive(combined),
+        undisputed: derive(undis),
+        disputed: derive(disp)
+      };
+    }
+
+    /* ============================================================
+       WRITE COMPUTED CELLS
+       ============================================================ */
+    function writeDuesTable(id, d) {
+      var t = document.getElementById(id);
+      if (!t) return;
+      var n = state.columns.length;
+
+      function put(key, ci, val) {
+        var el = t.querySelector('[data-out="' + key + '|' + ci + '"]');
+        if (el) el.textContent = fmtMoney(val);
+      }
+
+      ['payable', 'paid', 'penalty', 'intPrincipal', 'intPenalty'].forEach(function (k) {
+        for (var i = 0; i < n; i++) put(k, i, d[k][i]);
+        put(k, 'T', d.totals[k]);
+      });
+      for (var i2 = 0; i2 < n; i2++) put('net', i2, d.net[i2]);
+      put('net', 'T', d.totals.net);
+      for (var i3 = 0; i3 < n; i3++) put('totalInterest', i3, d.totalInterest[i3]);
+      put('totalInterest', 'T', d.totals.totalInterest);
+      for (var i4 = 0; i4 < n; i4++) put('totalDues', i4, d.totalDues[i4]);
+      put('totalDues', 'T', d.totals.totalDues);
+    }
+
+    function recompute() {
+      var all = computeAll();
+
+      writeDuesTable('duesCombined', all.combined);
+      writeDuesTable('duesUndisputed', all.undisputed);
+      writeDuesTable('duesDisputed', all.disputed);
+
+      var dt = document.getElementById('duesDisputed');
+      if (dt) {
+        for (var i = 0; i < state.columns.length; i++) {
+          var el = dt.querySelector('[data-out="netPayable|' + i + '"]');
+          if (el) el.textContent = fmtMoney(all.undisputed.totalDues[i]);
+        }
+        var elT = dt.querySelector('[data-out="netPayable|T"]');
+        if (elT) elT.textContent = fmtMoney(all.undisputed.totals.totalDues);
+      }
+
+      var dl = longDateStr();
+      document.querySelectorAll('[data-label="duesDate"]').forEach(function (el) { el.textContent = dl; });
+      var dispEl = document.getElementById('asOnDisplay');
+      if (dispEl) dispEl.textContent = dl;
+
+      window.__computed = all;
+    }
+
+    /* ============================================================
+       RENDER
+       ============================================================ */
+    function render() {
+      document.getElementById('output').innerHTML = docHTML();
+      renderColumns();
+      recompute();
+    }
+
+    function renderColumns() {
+      var list = document.getElementById('colList');
+      if (!list) return;
+      if (!state.columns.length) {
+        list.innerHTML = '<div style="font-size:12px;color:var(--ink-soft);padding:6px 2px;">No columns added yet.</div>';
+        return;
+      }
+      list.innerHTML = state.columns.map(function (c, i) {
+        return '<div class="col-chip-row">' +
+          '<span class="name">' + esc(c.name) + '</span>' +
+          '<button type="button" class="rm-btn" data-del="' + i + '" title="Delete column">×</button>' +
+          '</div>';
+      }).join('');
+    }
+
+    /* ============================================================
+       COLUMN ADD / REMOVE
+       ============================================================ */
+    function addColumnByName(name) {
+      name = (name || '').trim();
+      if (!name) return;
+      if (state.columns.some(function (c) { return c.name.toLowerCase() === name.toLowerCase(); })) {
+        alert('Column "' + name + '" already exists.');
+        return;
+      }
+      collectState();
+      state.columns.push({ name: name });
+      state.rateCombined.forEach(function (r) { r.push(''); });
+      state.rateUndisputed.forEach(function (r) { r.push(''); });
+      ['duesCombined', 'duesUndisputed'].forEach(function (k) {
+        ['payable', 'paid', 'penalty', 'intPrincipal', 'intPenalty'].forEach(function (rk) { state[k][rk].push(''); });
+      });
+      render();
+      saveState();
+    }
+
+    function removeColumn(i) {
+      if (state.columns.length <= 1) { alert('At least one spectrum column is required.'); return; }
+      if (!confirm('Delete column "' + state.columns[i].name + '" and all values under it?')) return;
+      collectState();
+      state.columns.splice(i, 1);
+      state.rateCombined.forEach(function (r) { r.splice(i, 1); });
+      state.rateUndisputed.forEach(function (r) { r.splice(i, 1); });
+      ['duesCombined', 'duesUndisputed'].forEach(function (k) {
+        ['payable', 'paid', 'penalty', 'intPrincipal', 'intPenalty'].forEach(function (rk) { state[k][rk].splice(i, 1); });
+      });
+      render();
+      saveState();
+    }
+
+    /* ============================================================
+       PASTE-AS-GRID
+       ============================================================ */
+    function onPaste(e) {
+      var inp = e.target;
+      if (!inp || inp.tagName !== 'INPUT' || inp.dataset.r === undefined) return;
+
+      var raw = '';
+      if (e.clipboardData || window.clipboardData) {
+        raw = (e.clipboardData || window.clipboardData).getData('text/plain');
+      }
+      if (!raw) return;
+
+      var lines = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n+$/, '').split('\n');
+      var matrix = lines.map(function (l) { return l.split('\t'); });
+      var isSingle = matrix.length === 1 && matrix[0].length === 1;
+
+      var r0 = parseInt(inp.dataset.r, 10);
+      var c0 = parseInt(inp.dataset.c, 10);
+      if (isNaN(r0) || isNaN(c0)) return;
+
+      if (isSingle) {
+        if (inp.dataset.num === '1') {
+          e.preventDefault();
+          inp.value = cleanNumStr(matrix[0][0]);
+          afterPaste();
+        }
+        return;
+      }
+
+      var table = inp.closest('table');
+      if (!table) return;
+
+      var map = {};
+      table.querySelectorAll('input[data-r][data-c]').forEach(function (el) {
+        map[el.dataset.r + ',' + el.dataset.c] = el;
+      });
+
+      e.preventDefault();
+
+      matrix.forEach(function (row, dr) {
+        row.forEach(function (val, dc) {
+          var el = map[(r0 + dr) + ',' + (c0 + dc)];
+          if (!el) return;
+          el.value = el.dataset.num === '1' ? cleanNumStr(val) : String(val).trim();
+        });
+      });
+
+      afterPaste();
+    }
+
+    function afterPaste() {
+      recompute();
+      saveState();
+    }
+
+    /* ============================================================
+       AGR INDIAN NUMBER FORMATTING
+       ============================================================ */
+    function applyIndianFormatToAgr() {
+      document.querySelectorAll('#agrTable input[data-indian="1"]').forEach(function (inp) {
+        var raw = inp.value;
+        if (!raw) return;
+        var s = cleanNumStr(raw);
+        if (!s) return;
+        var n = parseFloat(s);
+        if (!isFinite(n)) return;
+        inp.value = formatIndianNumber(n);
+      });
+    }
+
+    /* ============================================================
+       PERSISTENCE
+       ============================================================ */
+    function saveState() {
+      try {
+        collectState();
+        localStorage.setItem(STORE_KEY, JSON.stringify(state));
+      } catch (e) { /* ignore */ }
+    }
+    function loadState() {
+      try {
+        var raw = localStorage.getItem(STORE_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) { return null; }
+    }
+
+    /* ============================================================
+       PRINT SHEET
+       ============================================================ */
+    function psMetaKVs() {
+      var m = state.meta;
+      var rows = [
+        ['Service Provider', m.serviceProvider],
+        ['Licensee', m.licensee],
+        ['Phase', m.phase],
+        ['Service', m.service],
+        ['Date of Assessment', m.dateOfAssessment],
+        ['License Number', m.licenseNumber]
+      ];
+      return rows.map(function (r) {
+        return '<div class="ps-kv"><span class="k">' + esc(r[0]) + '</span><span class="v">' +
+               (r[1] ? esc(r[1]) : '—') + '</span></div>';
+      }).join('');
+    }
+
+    function psSummaryBox(title, value) {
+      return '<div class="ps-card ps-summary-box">' +
+        '<h3>' + esc(title) + '</h3>' +
+        '<div class="ps-kv"><span class="k">Total</span><span class="v">' + fmtMoney(value) + '</span></div>' +
+        '</div>';
+    }
+
+    function psAgrTable() {
+      var nCols = 2;
+      var h = '<table class="ps-mini"><tbody>';
+      h += '<tr class="ps-titlerow"><td colspan="' + nCols + '">(ii) AGR Details from Audited Statement of Revenue</td></tr>';
+      h += '<tr><th>Item</th><th class="num">Total</th></tr>';
+      state.agr.forEach(function (a) {
+        var num = parseNum(a.value);
+        h += '<tr><td>' + esc(a.label) + '</td><td class="num">' + formatIndianNumber(num) + '</td></tr>';
+      });
+      h += '</tbody></table>';
+      return h;
+    }
+
+    function psRateTable(data, title) {
+      var nCols = 1 + state.columns.length;
+      var h = '<table class="ps-mini"><tbody>';
+      if (title) h += '<tr class="ps-titlerow"><td colspan="' + nCols + '">' + esc(title) + '</td></tr>';
+      h += '<tr><th>Quarter</th>';
+      state.columns.forEach(function (c) { h += '<th class="num">' + esc(c.name) + '</th>'; });
+      h += '</tr>';
+      for (var r = 0; r < 4; r++) {
+        h += '<tr><td>Q' + (r + 1) + '</td>';
+        state.columns.forEach(function (c, ci) {
+          var v = (data[r] && data[r][ci]) || '';
+          h += '<td class="num">' + (v === '' ? '—' : esc(v) + '%') + '</td>';
+        });
+        h += '</tr>';
+      }
+      h += '</tbody></table>';
+      return h;
+    }
+
+    function psDuesTable(d, opts) {
+      opts = opts || {};
+      var n = state.columns.length;
+      var nCols = n + 3;
+      var h = '<table class="ps-mini"><tbody>';
+      if (opts.title) {
+        h += '<tr class="ps-titlerow"><td colspan="' + nCols + '">' + esc(opts.title) + '</td></tr>';
+      }
+      h += '<tr><th>Spectrum Type</th><th></th>';
+      state.columns.forEach(function (c) { h += '<th class="num">' + esc(c.name) + '</th>'; });
+      h += '<th class="num">Total</th></tr>';
+
+      function row(label, ref, arr, total, cls) {
+        var s = '<tr class="' + (cls || '') + '"><td>' + label + '</td><td>' + (ref || '') + '</td>';
+        for (var i = 0; i < n; i++) s += '<td class="num">' + fmtMoney(arr[i]) + '</td>';
+        s += '<td class="num">' + fmtMoney(total) + '</td></tr>';
+        return s;
+      }
+
+      h += row('SUC Dues Payable', '', d.payable, d.totals.payable);
+      h += row('SUC Dues Paid', '', d.paid, d.totals.paid);
+      h += row('Net Principal Due', 'A', d.net, d.totals.net, 'ps-total');
+      h += row('Penalty', 'B', d.penalty, d.totals.penalty);
+      h += row('Interest on Principal', 'A1', d.intPrincipal, d.totals.intPrincipal);
+      h += row('Interest on Penalty', 'B1', d.intPenalty, d.totals.intPenalty);
+      h += row('Total Interest upto ' + longDateStr(), 'A1+B1', d.totalInterest, d.totals.totalInterest);
+      h += row('Total SUC Dues as on ' + longDateStr(), 'A+B+A1+B1', d.totalDues, d.totals.totalDues, 'ps-total');
+
+      if (opts.netPayable) {
+        h += row('Net SUC Due Payable (Undisputed)', '',
+                 opts.netPayable.totalDues, opts.netPayable.totals.totalDues, 'ps-total');
+      }
+
+      h += '</tbody></table>';
+      return h;
+    }
+
+    function buildPrintSheet() {
+      var ps = document.getElementById('printSheet');
+      if (!ps) return;
+
+      collectState();
+      var all = computeAll();
+
+      var html = '';
+      html += '<div class="ps-header">' +
+        '<div><div class="ps-eyebrow">SUC Assessment</div>' +
+        '<h1 class="ps-title">Part VII: Payment Details and Revenue Share Due Calculation</h1></div>' +
+        '<div class="ps-asof">Dues computed upto<span>' + longDateStr() + '</span></div>' +
+        '</div>';
+
+      /* (i) Basic Details — full width */
+      html += '<div class="ps-row cols-1">' +
+              '<div class="ps-card"><h3>(i) Basic Details</h3>' + psMetaKVs() + '</div>' +
+              '</div>';
+
+      /* Three summary boxes immediately after the first table */
+      html += '<div class="ps-row cols-3">' +
+        psSummaryBox('Total SUC Dues as per CCA, Kerala', all.combined.totals.totalDues) +
+        psSummaryBox('Total SUC Dues as per Licensee',    all.undisputed.totals.totalDues) +
+        psSummaryBox('Total SUC Dues under Litigation',   all.disputed.totals.totalDues) +
+        '</div>';
+
+      /* (ii) AGR Summary */
+      html += '<div class="ps-row cols-1"><div class="ps-card">' + psAgrTable() + '</div></div>';
+
+      /* (iii) SUC Rates — Combined */
+      html += '<div class="ps-row cols-1"><div class="ps-card ps-ledger-card">' +
+              psRateTable(state.rateCombined, '(iii) SUC Rates') + '</div></div>';
+
+      /* (iv) Summary of SUC Dues — Combined */
+      html += '<div class="ps-row cols-1"><div class="ps-card ps-ledger-card">' +
+              psDuesTable(all.combined, { title: '(iv) Summary of SUC Dues' }) + '</div></div>';
+
+      /* (v) SUC Rates — Undisputed */
+      html += '<div class="ps-row cols-1"><div class="ps-card ps-ledger-card">' +
+              psRateTable(state.rateUndisputed, '(v) SUC Rates') + '</div></div>';
+
+      /* (vi) Summary of SUC Dues — Undisputed */
+      html += '<div class="ps-row cols-1"><div class="ps-card ps-ledger-card">' +
+              psDuesTable(all.undisputed, { title: '(vi) Summary of SUC Dues' }) + '</div></div>';
+
+      /* (vii) Summary of SUC Dues — Disputed */
+      html += '<div class="ps-row cols-1"><div class="ps-card ps-ledger-card">' +
+              psDuesTable(all.disputed, {
+                title: '(vii) Summary of SUC Dues',
+                netPayable: all.undisputed
+              }) + '</div></div>';
+
+      html += '<div class="ps-footer">Generated ' + fmtDate(new Date()) +
+              ' — Part VII Payment Details &amp; Revenue Share Due Calculation</div>';
+
+      ps.innerHTML = html;
+    }
+
+    /* ============================================================
+       EXCEL EXPORT
+       ============================================================ */
+    function exportExcel() {
+      collectState();
+      var all = computeAll();
+
+      if (typeof XLSX === 'undefined') {
+        alert('The Excel library could not be loaded (offline?). Please check your connection and try again.');
+        return;
+      }
+
+      var n = state.columns.length;
+      var grid = [];
+      var formulaCells = [];
+
+      function set(r, c, v) {
+        while (grid.length <= r) grid.push([]);
+        var row = grid[r];
+        while (row.length <= c) row.push(null);
+        row[c] = v;
+      }
+
+      var r = 0;
+      set(r, 0, 'Part VII: PAYMENT DETAILS AND REVENUE SHARE DUE CALCULATION'); r += 2;
+
+      set(r, 0, '(i) Basic Details'); r++;
+      var metaRows = [
+        ['Service Provider:', state.meta.serviceProvider],
+        ['Licensee:', state.meta.licensee],
+        ['Phase:', state.meta.phase],
+        ['Service:', state.meta.service],
+        ['Date of Assessment:', state.meta.dateOfAssessment],
+        ['License Number:', state.meta.licenseNumber]
+      ];
+      metaRows.forEach(function (mr) { set(r, 0, mr[0]); set(r, 1, mr[1]); r++; });
+      r++;
+
+      /* AGR */
+      set(r, 0, '(ii) AGR Details from Audited Statement of Revenue'); r++;
+      set(r, 0, 'Item'); set(r, 1, 'Total'); r++;
+      state.agr.forEach(function (a) {
+        set(r, 0, a.label);
+        set(r, 1, Math.ceil(parseNum(a.value)));
+        r++;
+      });
+      r++;
+
+      /* Combined rates */
+      set(r, 0, 'SUC Dues as per CCA, Kerala (Disputed + Undisputed)'); r++;
+      set(r, 0, '(iii) SUC Rates'); r++;
+      set(r, 0, 'Quarter');
+      state.columns.forEach(function (c, i) { set(r, 1 + i, c.name); });
+      r++;
+      for (var q = 0; q < 4; q++) {
+        set(r, 0, 'Q' + (q + 1));
+        for (var ci = 0; ci < n; ci++) set(r, 1 + ci, parseNum(state.rateCombined[q][ci]));
+        r++;
+      }
+      r++;
+
+      function writeDuesBlock(startRow, title, d, opts) {
+        opts = opts || {};
+        var row = startRow;
+        set(row, 0, title); row++;
+
+        set(row, 0, 'Spectrum Type'); set(row, 1, '');
+        for (var i = 0; i < n; i++) set(row, 2 + i, state.columns[i].name);
+        set(row, 2 + n, 'Total');
+        row++;
+
+        var firstCol = XLSX.utils.encode_col(2);
+        var lastCol = XLSX.utils.encode_col(1 + n);
+        var totalColIdx = 2 + n;
+
+        function plainRow(label, ref, arr) {
+          set(row, 0, label); set(row, 1, ref);
+          for (var i2 = 0; i2 < n; i2++) set(row, 2 + i2, arr[i2]);
+          var tot = arr.reduce(function (s, v) { return s + v; }, 0);
+          formulaCells.push({
+            r: row, c: totalColIdx,
+            f: 'SUM(' + firstCol + (row + 1) + ':' + lastCol + (row + 1) + ')', v: tot
+          });
+          row++;
+          return row - 1;
+        }
+        function diffRow(label, ref, arr, srcRowA, srcRowB) {
+          set(row, 0, label); set(row, 1, ref);
+          for (var i3 = 0; i3 < n; i3++) {
+            var col = XLSX.utils.encode_col(2 + i3);
+            formulaCells.push({
+              r: row, c: 2 + i3,
+              f: col + (srcRowA + 1) + '-' + col + (srcRowB + 1),
+              v: arr[i3]
+            });
+          }
+          var tot2 = arr.reduce(function (s, v) { return s + v; }, 0);
+          formulaCells.push({
+            r: row, c: totalColIdx,
+            f: 'SUM(' + firstCol + (row + 1) + ':' + lastCol + (row + 1) + ')', v: tot2
+          });
+          row++;
+          return row - 1;
+        }
+        function multiSumRow(label, ref, arr, srcRows) {
+          set(row, 0, label); set(row, 1, ref);
+          for (var i4 = 0; i4 < n; i4++) {
+            var col2 = XLSX.utils.encode_col(2 + i4);
+            var formula = srcRows.map(function (sr) { return col2 + (sr + 1); }).join('+');
+            formulaCells.push({ r: row, c: 2 + i4, f: formula, v: arr[i4] });
+          }
+          var tot3 = arr.reduce(function (s, v) { return s + v; }, 0);
+          formulaCells.push({
+            r: row, c: totalColIdx,
+            f: 'SUM(' + firstCol + (row + 1) + ':' + lastCol + (row + 1) + ')', v: tot3
+          });
+          row++;
+          return row - 1;
+        }
+
+        var rowPayable = plainRow('SUC Dues Payable', '', d.payable);
+        var rowPaid    = plainRow('SUC Dues Paid', '', d.paid);
+        var rowNet     = diffRow('Net Principal Due', 'A', d.net, rowPayable, rowPaid);
+        var rowPenalty = plainRow('Penalty', 'B', d.penalty);
+        var rowA1      = plainRow('Interest on Principal', 'A1', d.intPrincipal);
+        var rowB1      = plainRow('Interest on Penalty', 'B1', d.intPenalty);
+        var rowTotInt  = multiSumRow('Total Interest upto ' + longDateStr(), 'A1+B1', d.totalInterest, [rowA1, rowB1]);
+        var rowTotDues = multiSumRow('Total SUC Dues as on ' + longDateStr(), 'A+B+A1+B1', d.totalDues, [rowNet, rowPenalty, rowA1, rowB1]);
+
+        if (opts.netPayableRowSource) {
+          set(row, 0, 'Net SUC Due Payable (Undisputed)'); set(row, 1, '');
+          var src = opts.netPayableRowSource;
+          for (var i5 = 0; i5 < n; i5++) {
+            var col3 = XLSX.utils.encode_col(2 + i5);
+            formulaCells.push({ r: row, c: 2 + i5, f: col3 + (src + 1), v: opts.netPayableValues[i5] });
+          }
+          var tot4 = opts.netPayableValues.reduce(function (s, v) { return s + v; }, 0);
+          formulaCells.push({
+            r: row, c: totalColIdx,
+            f: 'SUM(' + firstCol + (row + 1) + ':' + lastCol + (row + 1) + ')', v: tot4
+          });
+          row++;
+        }
+
+        return row;
+      }
+
+      r = writeDuesBlock(r, '(iv) Summary of SUC Dues', all.combined);
+      r++;
+
+      set(r, 0, 'UNDISPUTED SUC DUES'); r++;
+      set(r, 0, '(v) SUC Rates'); r++;
+      set(r, 0, 'Quarter');
+      state.columns.forEach(function (c, i) { set(r, 1 + i, c.name); });
+      r++;
+      for (var q2 = 0; q2 < 4; q2++) {
+        set(r, 0, 'Q' + (q2 + 1));
+        for (var ci2 = 0; ci2 < n; ci2++) set(r, 1 + ci2, parseNum(state.rateUndisputed[q2][ci2]));
+        r++;
+      }
+      r++;
+
+      var undisStart = r;
+      r = writeDuesBlock(r, '(vi) Summary of SUC Dues', all.undisputed);
+      /* title(1) + header(1) + 8 rows = 10; penalty is now a normal row */
+      var undisNetPayRow = undisStart + 10;
+      r++;
+
+      set(r, 0, 'DISPUTED DUES'); r++;
+      r = writeDuesBlock(r, '(vii) Summary of SUC Dues', all.disputed, {
+        netPayableRowSource: undisNetPayRow,
+        netPayableValues: all.undisputed.totalDues
+      });
+
+      var ws = XLSX.utils.aoa_to_sheet(grid);
+      formulaCells.forEach(function (fc) {
+        var addr = XLSX.utils.encode_cell({ r: fc.r, c: fc.c });
+        ws[addr] = { t: 'n', f: fc.f, v: fc.v, z: '#,##0' };
+      });
+
+      if (ws['!ref']) {
+        var range = XLSX.utils.decode_range(ws['!ref']);
+        for (var R = range.s.r; R <= range.e.r; R++) {
+          for (var C = range.s.c; C <= range.e.c; C++) {
+            var a = XLSX.utils.encode_cell({ r: R, c: C });
+            var cell = ws[a];
+            if (cell && cell.t === 'n' && !cell.z) cell.z = '#,##0';
+          }
+        }
+      }
+
+      ws['!cols'] = [{ wch: 34 }, { wch: 7 }];
+      for (var w = 0; w < n; w++) ws['!cols'].push({ wch: 18 });
+      ws['!cols'].push({ wch: 20 });
+
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, '7. Payment Details (N)');
+      var buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      var blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      var url = URL.createObjectURL(blob);
+      var a2 = document.createElement('a');
+      a2.href = url;
+      a2.download = 'Part_VII_Payment_Details.xlsx';
+      document.body.appendChild(a2);
+      a2.click();
+      setTimeout(function () { URL.revokeObjectURL(url); a2.remove(); }, 1500);
+    }
+
+    /* ============================================================
+       SIDEBAR COLLAPSE
+       ============================================================ */
+    function setupSidebar() {
+      var toggle = document.getElementById('sidebarToggle');
+      var chev = toggle.querySelector('.chev');
+      var label = toggle.querySelector('.label');
+
+      function apply(collapsed) {
+        document.body.classList.toggle('sidebar-collapsed', collapsed);
+        toggle.setAttribute('aria-expanded', String(!collapsed));
+        chev.textContent = collapsed ? '›' : '‹';
+        label.textContent = collapsed ? 'Inputs' : 'Hide inputs';
+        try { localStorage.setItem(SIDEBAR_KEY, collapsed ? '1' : '0'); } catch (e) {}
+      }
+
+      var saved = false;
+      try { saved = localStorage.getItem(SIDEBAR_KEY) === '1'; } catch (e) {}
+      apply(saved);
+
+      toggle.addEventListener('click', function () {
+        apply(!document.body.classList.contains('sidebar-collapsed'));
+      });
+
+      window.__applySidebarState = apply;
+    }
+
+    /* ============================================================
+       COLLAPSIBLE PANELS
+       ============================================================ */
+    function setupCollapsiblePanels() {
+      var panels = [].slice.call(document.querySelectorAll('#inputCol .panel'));
+      panels.forEach(function (panel) {
+        var h2 = panel.querySelector('h2');
+        if (!h2) return;
+
+        var body = document.createElement('div');
+        body.className = 'panel-body';
+        var kids = [].slice.call(panel.childNodes);
+        var startIdx = kids.indexOf(h2) + 1;
+        kids.slice(startIdx).forEach(function (nd) { body.appendChild(nd); });
+        panel.appendChild(body);
+
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'panel-toggle';
+        btn.setAttribute('aria-expanded', 'true');
+        btn.title = 'Collapse / expand';
+        btn.innerHTML = '<span class="chev">▾</span>';
+        btn.addEventListener('click', function () {
+          panel.classList.toggle('collapsed');
+          var collapsed = panel.classList.contains('collapsed');
+          btn.setAttribute('aria-expanded', String(!collapsed));
+          btn.querySelector('.chev').textContent = collapsed ? '▸' : '▾';
+          savePanelState();
+        });
+        h2.appendChild(btn);
+      });
+
+      try {
+        var raw = localStorage.getItem(PANEL_KEY);
+        if (raw) {
+          var states = JSON.parse(raw);
+          panels.forEach(function (panel, i) {
+            if (!states[i]) return;
+            panel.classList.add('collapsed');
+            var btn = panel.querySelector('.panel-toggle');
+            if (btn) {
+              btn.setAttribute('aria-expanded', 'false');
+              var ch = btn.querySelector('.chev');
+              if (ch) ch.textContent = '▸';
+            }
+          });
+        }
+      } catch (e) { /* ignore */ }
+    }
+    function savePanelState() {
+      try {
+        var states = [].slice.call(document.querySelectorAll('#inputCol .panel'))
+          .map(function (p) { return p.classList.contains('collapsed'); });
+        localStorage.setItem(PANEL_KEY, JSON.stringify(states));
+      } catch (e) { /* ignore */ }
+    }
+
+    /* ============================================================
+       FRESH START / CLEAR
+       ============================================================ */
+    function freshStart() {
+      if (!confirm('Delete all saved data in this browser and start with a blank form?')) return;
+      try {
+        localStorage.removeItem(STORE_KEY);
+        localStorage.removeItem(PANEL_KEY);
+        localStorage.removeItem(SIDEBAR_KEY);
+      } catch (e) { /* ignore */ }
+
+      state = blankState();
+      state.asOn = toInputVal(new Date());
+      document.getElementById('asOnDate').value = state.asOn;
+
+      document.querySelectorAll('#inputCol .panel').forEach(function (p) {
+        p.classList.remove('collapsed');
+        var btn = p.querySelector('.panel-toggle');
+        if (btn) {
+          btn.setAttribute('aria-expanded', 'true');
+          var ch = btn.querySelector('.chev');
+          if (ch) ch.textContent = '▾';
+        }
+      });
+
+      if (window.__applySidebarState) window.__applySidebarState(false);
+
+      render();
+      saveState();
+    }
+
+    function clearValues() {
+      if (!confirm('Clear all entered values? Column structure is kept.')) return;
+      collectState();
+      var cols = state.columns.map(function (c) { return { name: c.name }; });
+      var asOn = state.asOn;
+      var fresh = blankState();
+      fresh.columns = cols;
+      fresh.asOn = asOn;
+      state = normalizeState(fresh);
+      render();
+      saveState();
+    }
+
+    /* ============================================================
+       INIT
+       ============================================================ */
+    function init() {
+      setupSidebar();
+      setupCollapsiblePanels();
+
+      var saved = loadState();
+      state = normalizeState(saved || blankState());
+      if (!state.asOn) state.asOn = toInputVal(new Date());
+      document.getElementById('asOnDate').value = state.asOn;
+
+      var out = document.getElementById('output');
+
+      out.addEventListener('paste', onPaste);
+
+      out.addEventListener('input', function (e) {
+        if (e.target && e.target.tagName === 'INPUT') {
+          recompute();
+          debouncedSave();
+        }
+      });
+
+      out.addEventListener('change', function (e) {
+        if (e.target && e.target.dataset && e.target.dataset.indian === '1') {
+          applyIndianFormatToAgr();
+          saveState();
+        }
+      });
+      out.addEventListener('blur', function (e) {
+        if (e.target && e.target.dataset && e.target.dataset.indian === '1') {
+          applyIndianFormatToAgr();
+          saveState();
+        }
+      }, true);
+
+      document.getElementById('colList').addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-del]');
+        if (!btn) return;
+        removeColumn(parseInt(btn.getAttribute('data-del'), 10));
+      });
+
+      document.getElementById('spectrumSelect').addEventListener('change', function (e) {
+        var v = e.target.value;
+        if (!v) return;
+        addColumnByName(v);
+        e.target.value = '';
+      });
+
+      document.getElementById('addColBtn').addEventListener('click', function () {
+        var sel = document.getElementById('spectrumSelect');
+        var v = sel ? sel.value : '';
+        if (!v) { alert('Please choose a spectrum column first.'); return; }
+        addColumnByName(v);
+        sel.value = '';
+      });
+
+      document.getElementById('asOnDate').addEventListener('change', function () {
+        collectState();
+        recompute();
+        saveState();
+      });
+
+      document.getElementById('calcBtn').addEventListener('click', function () {
+        collectState();
+        recompute();
+        saveState();
+      });
+
+      document.getElementById('clearBtn').addEventListener('click', clearValues);
+
+      document.getElementById('printBtn').addEventListener('click', function () {
+        buildPrintSheet();
+        window.print();
+      });
+      window.addEventListener('beforeprint', buildPrintSheet);
+
+      document.getElementById('xlsxBtn').addEventListener('click', exportExcel);
+      document.getElementById('freshStartBtn').addEventListener('click', freshStart);
+
+      render();
+    }
+
+    var saveTimer = null;
+    function debouncedSave() {
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(function () {
+        saveTimer = null;
+        saveState();
+      }, 500);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+
+  })();
+  </script>
+</body>
+</html>
