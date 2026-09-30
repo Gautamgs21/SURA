@@ -522,6 +522,65 @@
       min-width: 0;
     }
 
+    /* --- select inside a doc-table --- */
+    table.doc-table select {
+      width: 100%;
+      min-width: 88px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--ink);
+      font-family: var(--font-sans);
+      font-size: 12.5px;
+      font-weight: 500;
+      padding: 3px 5px;
+      border-radius: 2px;
+      text-align: left;
+      transition: var(--transition);
+    }
+    table.doc-table select:hover { border-color: var(--line); }
+    table.doc-table select:focus {
+      outline: 2px solid var(--brass);
+      outline-offset: 0;
+      background: var(--paper);
+      border-color: var(--brass);
+    }
+    table.doc-table select option {
+      background: var(--paper-raised);
+      color: var(--ink);
+    }
+
+    /* --- technologies checkbox cell --- */
+    td.tech-cell {
+      text-align: left;
+      white-space: normal;
+      line-height: 1.9;
+    }
+    label.tech-cb {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-right: 16px;
+      margin-bottom: 0;
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--ink);
+      cursor: pointer;
+      white-space: nowrap;
+      user-select: none;
+    }
+    table.doc-table td.tech-cell input[type=checkbox] {
+      width: 14px;
+      height: 14px;
+      min-width: 0;
+      padding: 0;
+      margin: 0;
+      text-align: left;
+      vertical-align: middle;
+      cursor: pointer;
+      accent-color: var(--brass);
+      flex-shrink: 0;
+    }
+
     details.notes {
       margin-top: 30px;
       background: var(--paper-raised);
@@ -632,7 +691,7 @@
       padding: 1.5px 0;
       line-height: 1.35;
     }
-    .ps-kv .k { color: #000; }
+    .ps-kv .k { color: #000; flex-shrink: 0; }
     .ps-kv .v { font-weight: 700; color: #000; text-align: right; }
 
     /* Summary boxes in the print sheet — larger amount display */
@@ -965,6 +1024,26 @@
       return isFinite(n) ? n : 0;
     }
 
+    /* Technologies list — canonical order + labels */
+    var TECH_DEFS = [
+      ['gsmAccess', 'GSM Access'],
+      ['gsmMwa',    'GSM MWA'],
+      ['gsmMwb',    'GSM MWB'],
+      ['eBand',     'E-Band'],
+      ['other',     'Other']
+    ];
+    function emptyTech() {
+      var o = {};
+      TECH_DEFS.forEach(function (t) { o[t[0]] = false; });
+      return o;
+    }
+    function techListStr() {
+      var t = (state.meta && state.meta.technologies) || {};
+      var picked = TECH_DEFS.filter(function (d) { return !!t[d[0]]; })
+                            .map(function (d) { return d[1]; });
+      return picked.length ? picked.join(', ') : '—';
+    }
+
     /* ============================================================
        STATE
        ============================================================ */
@@ -977,8 +1056,14 @@
       var z = function () { return cols.map(function () { return ''; }); };
       return {
         meta: {
-          serviceProvider: '', serviceArea: '', period:  '',
-          service: '', dateOfAssessment: '', licenseNumber: ''
+          serviceProvider: '',
+          licenseServiceArea: '',
+          periodFy: '',
+          licenseType: '',
+          dateOfAssessment: '',
+          licenseNumber: '',
+          assessmentType: '',
+          technologies: emptyTech()
         },
         asOn: '',
         agr: [
@@ -999,7 +1084,19 @@
       var out = blankState();
       if (!s) return out;
 
-      out.meta = Object.assign(out.meta, s.meta || {});
+      /* --- migrate older meta keys to the renamed ones --- */
+      if (s.meta) {
+        if (s.meta.licensee      && !s.meta.licenseServiceArea) s.meta.licenseServiceArea = s.meta.licensee;
+        if (s.meta.serviceArea   && !s.meta.licenseServiceArea) s.meta.licenseServiceArea = s.meta.serviceArea;
+        if (s.meta.phase         && !s.meta.periodFy)           s.meta.periodFy           = s.meta.phase;
+        if (s.meta.period        && !s.meta.periodFy)           s.meta.periodFy           = s.meta.period;
+        if (s.meta.service       && !s.meta.licenseType)        s.meta.licenseType        = s.meta.service;
+      }
+
+      out.meta = Object.assign({}, out.meta, s.meta || {});
+      /* technologies is a nested object — merge field by field */
+      out.meta.technologies = Object.assign(emptyTech(), (s.meta && s.meta.technologies) || {});
+
       out.asOn = s.asOn || '';
 
       /* AGR labels are fixed — only the numeric values are carried over. */
@@ -1155,19 +1252,49 @@
       /* ---- (i) Basic Details ---- */
       h += '<table class="doc-table meta-table"><tbody>';
       h += '<tr class="titlerow"><td colspan="2">(i) Basic Details</td></tr>';
-      var metaRows = [
-        ['serviceProvider', 'Service Provider'],
-        ['licensee', 'Licensee'],
-        ['phase', 'Phase'],
-        ['service', 'Service'],
-        ['dateOfAssessment', 'Date of Assessment'],
-        ['licenseNumber', 'License Number']
+
+      var metaTextRows = [
+        ['serviceProvider',    'Service Provider:'],
+        ['licenseServiceArea', 'License Service Area:'],
+        ['periodFy',           'Period (FY):'],
+        ['licenseType',        'License Type:'],
+        ['dateOfAssessment',   'Date of Assessment:'],
+        ['licenseNumber',      'License Number:']
       ];
-      metaRows.forEach(function (mr) {
+      metaTextRows.forEach(function (mr) {
         var k = mr[0], lbl = mr[1];
-        h += '<tr><td class="lblcell">' + esc(lbl) + ':</td>' +
+        h += '<tr><td class="lblcell">' + esc(lbl) + '</td>' +
              '<td><input class="txt" type="text" id="m_' + k + '" value="' + esc(s.meta[k] || '') + '"></td></tr>';
       });
+
+      /* Type of Assessment — dropdown */
+      var assessmentOptions = [
+        'Provisional SUC Assessment',
+        'Final SUC Assessment',
+        'Revision of SUC Assessment',
+        'Other'
+      ];
+      h += '<tr><td class="lblcell">Type of Assessment:</td><td>';
+      h += '<select id="m_assessmentType">';
+      h += '<option value=""' + (!s.meta.assessmentType ? ' selected' : '') + '>— Select —</option>';
+      assessmentOptions.forEach(function (opt) {
+        h += '<option value="' + esc(opt) + '"' +
+             (s.meta.assessmentType === opt ? ' selected' : '') + '>' +
+             esc(opt) + '</option>';
+      });
+      h += '</select></td></tr>';
+
+      /* Technologies — checkboxes */
+      var techState = s.meta.technologies || emptyTech();
+      h += '<tr><td class="lblcell">Technologies:</td><td class="tech-cell">';
+      TECH_DEFS.forEach(function (t) {
+        h += '<label class="tech-cb">' +
+             '<input type="checkbox" id="tech_' + t[0] + '"' +
+             (techState[t[0]] ? ' checked' : '') + '> ' +
+             esc(t[1]) + '</label>';
+      });
+      h += '</td></tr>';
+
       h += '</tbody></table>';
 
       /* ---- (ii) AGR — labels are fixed, only values are editable ---- */
@@ -1248,11 +1375,20 @@
       var g = function (id) { var el = document.getElementById(id); return el ? el.value : ''; };
 
       state.meta.serviceProvider    = g('m_serviceProvider');
-      state.meta.licensee           = g('m_licensee');
-      state.meta.phase              = g('m_phase');
-      state.meta.service            = g('m_service');
+      state.meta.licenseServiceArea = g('m_licenseServiceArea');
+      state.meta.periodFy           = g('m_periodFy');
+      state.meta.licenseType        = g('m_licenseType');
       state.meta.dateOfAssessment   = g('m_dateOfAssessment');
       state.meta.licenseNumber      = g('m_licenseNumber');
+      state.meta.assessmentType     = g('m_assessmentType');
+
+      /* Technologies — read each checkbox */
+      var tech = emptyTech();
+      TECH_DEFS.forEach(function (t) {
+        var el = document.getElementById('tech_' + t[0]);
+        tech[t[0]] = !!(el && el.checked);
+      });
+      state.meta.technologies = tech;
 
       var asOn = g('asOnDate');
       if (asOn) state.asOn = asOn;
@@ -1515,12 +1651,14 @@
     function psMetaKVs() {
       var m = state.meta;
       var rows = [
-        ['Service Provider', m.serviceProvider],
-        ['Licensee', m.licensee],
-        ['Phase', m.phase],
-        ['Service', m.service],
-        ['Date of Assessment', m.dateOfAssessment],
-        ['License Number', m.licenseNumber]
+        ['Service Provider',      m.serviceProvider],
+        ['License Service Area',  m.licenseServiceArea],
+        ['Period (FY)',           m.periodFy],
+        ['License Type',          m.licenseType],
+        ['Date of Assessment',    m.dateOfAssessment],
+        ['License Number',        m.licenseNumber],
+        ['Type of Assessment',    m.assessmentType],
+        ['Technologies',          techListStr()]
       ];
       return rows.map(function (r) {
         return '<div class="ps-kv"><span class="k">' + esc(r[0]) + '</span><span class="v">' +
@@ -1699,12 +1837,14 @@
 
       set(r, 0, '(i) Basic Details'); r++;
       var metaRows = [
-        ['Service Provider:', state.meta.serviceProvider],
-        ['Service Area:', state.meta.licensee],
-        ['Period:', state.meta.phase],
-        ['Service:', state.meta.service],
-        ['Date of Assessment:', state.meta.dateOfAssessment],
-        ['License Number:', state.meta.licenseNumber]
+        ['Service Provider:',      state.meta.serviceProvider],
+        ['License Service Area:',  state.meta.licenseServiceArea],
+        ['Period (FY):',           state.meta.periodFy],
+        ['License Type:',          state.meta.licenseType],
+        ['Date of Assessment:',    state.meta.dateOfAssessment],
+        ['License Number:',        state.meta.licenseNumber],
+        ['Type of Assessment:',    state.meta.assessmentType],
+        ['Technologies:',          techListStr()]
       ];
       metaRows.forEach(function (mr) { set(r, 0, mr[0]); set(r, 1, mr[1]); r++; });
       r++;
@@ -2030,12 +2170,20 @@
         }
       });
 
+      /* handle select + checkbox changes inside the doc */
       out.addEventListener('change', function (e) {
-        if (e.target && e.target.dataset && e.target.dataset.indian === '1') {
+        var t = e.target;
+        if (!t || !t.tagName) return;
+        if (t.tagName === 'SELECT' || (t.type === 'checkbox')) {
+          recompute();
+          debouncedSave();
+        }
+        if (t.dataset && t.dataset.indian === '1') {
           applyIndianFormatToAgr();
           saveState();
         }
       });
+
       out.addEventListener('blur', function (e) {
         if (e.target && e.target.dataset && e.target.dataset.indian === '1') {
           applyIndianFormatToAgr();
