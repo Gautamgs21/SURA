@@ -684,6 +684,11 @@
       letter-spacing: 0.03em;
       font-size: 7pt;
     }
+    
+    table.doc-table td.agr-lbl {
+      font-weight: 700;
+      color: var(--ink);
+    }
 
     /* Isolated banner heading inside the print sheet */
     .ps-banner {
@@ -977,10 +982,10 @@
         },
         asOn: '',
         agr: [
-          { label: 'GR as per DoT', value: '' },
-          { label: 'GR as per DoT (Audited)', value: '' },
+          { label: 'GR as per TSP', value: '' },
+          { label: 'Deductions as per DoT', value: '' },
           { label: 'AGR as per DoT', value: '' },
-          { label: 'AGR for spectrum usage charges for GSM', value: '' }
+          { label: 'Net AGR for spectrum usage charges for GSM', value: '' }
         ],
         columns: cols,
         rateCombined:   [z(), z(), z(), z()],
@@ -997,10 +1002,11 @@
       out.meta = Object.assign(out.meta, s.meta || {});
       out.asOn = s.asOn || '';
 
+      /* AGR labels are fixed — only the numeric values are carried over. */
       if (Array.isArray(s.agr) && s.agr.length) {
         out.agr = out.agr.map(function (def, i) {
           var src = s.agr[i] || {};
-          return { label: src.label || def.label, value: src.value != null ? src.value : '' };
+          return { label: def.label, value: src.value != null ? src.value : '' };
         });
       }
 
@@ -1164,12 +1170,12 @@
       });
       h += '</tbody></table>';
 
-      /* ---- (ii) AGR ---- */
+      /* ---- (ii) AGR — labels are fixed, only values are editable ---- */
       h += '<div class="tbl-scroll"><table class="doc-table" id="agrTable"><tbody>';
       h += '<tr class="titlerow"><td colspan="2">(ii) AGR Details from Audited Statement of Revenue</td></tr>';
       h += '<tr><th class="lblcol">Item</th><th class="num" style="width:34%;">Total</th></tr>';
       s.agr.forEach(function (row, i) {
-        h += '<tr><td><input class="txt" type="text" id="agr_label_' + i + '" value="' + esc(row.label) + '"></td>' +
+        h += '<tr><td class="agr-lbl">' + esc(row.label) + '</td>' +
              '<td class="num"><input type="text" inputmode="decimal" id="agr_value_' + i +
              '" data-r="' + i + '" data-c="0" data-num="1" data-indian="1" value="' + esc(row.value) + '"></td></tr>';
       });
@@ -1251,9 +1257,8 @@
       var asOn = g('asOnDate');
       if (asOn) state.asOn = asOn;
 
+      /* AGR labels are fixed — only read the value. */
       state.agr.forEach(function (row, i) {
-        var l = g('agr_label_' + i);
-        if (l) row.label = l;
         row.value = g('agr_value_' + i);
       });
 
@@ -1537,7 +1542,7 @@
       h += '<tr><th>Item</th><th class="num">Total</th></tr>';
       state.agr.forEach(function (a) {
         var num = parseNum(a.value);
-        h += '<tr><td>' + esc(a.label) + '</td><td class="num">' + formatIndianNumber(num) + '</td></tr>';
+        h += '<tr><td><strong>' + esc(a.label) + '</strong></td><td class="num">' + formatIndianNumber(num) + '</td></tr>';
       });
       h += '</tbody></table>';
       return h;
@@ -1830,7 +1835,7 @@
 
       var undisStart = r;
       r = writeDuesBlock(r, '(vi) Summary of SUC Dues', all.undisputed);
-      /* title(1) + header(1) + 8 rows = 10; penalty is now a normal row */
+      /* title(1) + header(1) + 8 rows = 10 */
       var undisNetPayRow = undisStart + 10;
       r++;
 
@@ -2091,7 +2096,7 @@
       saveTimer = setTimeout(function () {
         saveTimer = null;
         saveState();
-      }, 500);
+      }, 300);
     }
 
     if (document.readyState === 'loading') {
