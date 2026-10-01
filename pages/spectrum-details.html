@@ -1,0 +1,3205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Spectrum Details &amp; SUC Rate Calculation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Aptos+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ---------- design tokens ---------- */
+    :root {
+      --ink: #182233;
+      --ink-soft: #4b5768;
+      --paper: #ECEEEA;
+      --paper-raised: #F7F8F5;
+      --line: #CBD0C7;
+      --line-soft: #DDE0D9;
+      --brass: #9C7327;
+      --brass-soft: #EFE3C8;
+      --teal: #2C6357;
+      --teal-soft: #DEEAE5;
+      --red: #9C3B31;
+      --red-soft: #F3DEDA;
+      --green: #2E7D32;
+      --orange: #B45309;
+      --orange-soft: #FBD9A8;
+      --font-sans: "Aptos Display", -apple-system, "Segoe UI", sans-serif;
+      --font-serif: "Aptos Display", -apple-system, "Segoe UI", sans-serif;
+      --font-mono: "Aptos Display", -apple-system, "Segoe UI", sans-serif;
+      --radius: 4px;
+      --shadow-card: 0 1px 3px rgba(0,0,0,0.03);
+      --transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      box-sizing: border-box;
+    }
+
+    :root[data-theme="dark"] {
+      --ink: #E9ECE6; --ink-soft: #AEB6A8; --paper: #161B15; --paper-raised: #1E241C;
+      --line: #333B30; --line-soft: #2A3128; --brass: #D4A94B; --brass-soft: #332A16;
+      --teal: #7FBDA9; --teal-soft: #1B2C26; --red: #D98A7C; --red-soft: #3A211D;
+      --green: #6FCF77; --orange: #F0A85A; --orange-soft: #4A3010;
+      --shadow-card: 0 1px 3px rgba(0,0,0,0.4);
+    }
+    :root[data-theme="light"] {
+      --ink: #182233; --ink-soft: #4b5768; --paper: #ECEEEA; --paper-raised: #F7F8F5;
+      --line: #CBD0C7; --line-soft: #DDE0D9; --brass: #9C7327; --brass-soft: #EFE3C8;
+      --teal: #2C6357; --teal-soft: #DEEAE5; --red: #9C3B31; --red-soft: #F3DEDA;
+      --green: #2E7D32; --orange: #B45309; --orange-soft: #FBD9A8;
+      --shadow-card: 0 1px 3px rgba(0,0,0,0.03);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme]) {
+        --ink: #E9ECE6; --ink-soft: #AEB6A8; --paper: #161B15; --paper-raised: #1E241C;
+        --line: #333B30; --line-soft: #2A3128; --brass: #D4A94B; --brass-soft: #332A16;
+        --teal: #7FBDA9; --teal-soft: #1B2C26; --red: #D98A7C; --red-soft: #3A211D;
+        --green: #6FCF77; --orange: #F0A85A; --orange-soft: #4A3010;
+        --shadow-card: 0 1px 3px rgba(0,0,0,0.4);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      transition: var(--transition);
+    }
+
+    .wrap { max-width: 1600px; margin: 0 auto; padding: 28px 32px 70px; transition: var(--transition); }
+    @media (max-width: 1200px) { .wrap { padding: 24px 22px 60px; } }
+    @media (max-width: 760px) { .wrap { padding: 16px 14px 50px; } }
+
+    header.masthead {
+      border-bottom: 2px solid var(--ink);
+      padding-bottom: 18px;
+      margin-bottom: 22px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    header.masthead .title-block { max-width: 760px; }
+    header.masthead .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      letter-spacing: 0.04em;
+      color: var(--brass);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+    header.masthead h1 {
+      font-family: var(--font-serif);
+      font-weight: 600;
+      font-size: 26px;
+      margin: 0 0 6px;
+      line-height: 1.18;
+    }
+    header.masthead .asof {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--ink-soft);
+      text-align: right;
+      white-space: nowrap;
+    }
+    header.masthead .asof b { color: var(--ink); font-weight: 600; display: block; font-size: 13px; }
+
+    .theme-toggle {
+      display: flex; gap: 4px; align-items: center;
+      background: var(--paper-raised); border: 1px solid var(--line);
+      border-radius: 40px; padding: 3px;
+      cursor: pointer; user-select: none; flex-shrink: 0;
+      transition: var(--transition);
+    }
+    .theme-toggle button {
+      font-family: var(--font-sans); font-size: 11.5px; padding: 6px 14px;
+      border-radius: 40px; border: none; background: transparent;
+      color: var(--ink-soft); font-weight: 500; letter-spacing: 0.01em;
+      cursor: pointer; transition: var(--transition);
+    }
+    .theme-toggle button.active { background: var(--ink); color: var(--paper-raised); }
+    .theme-toggle button:hover:not(.active) { color: var(--ink); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 340px minmax(0, 1fr);
+      gap: 24px;
+      align-items: start;
+      transition: grid-template-columns 0.3s ease, gap 0.3s ease;
+    }
+    .grid > * { min-width: 0; align-self: start; }
+    #output { min-width: 0; width: 100%; }
+
+    #sidebar { min-width: 0; display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+    #inputCol { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+
+    .sidebar-toggle {
+      width: 100%; display: flex; align-items: center; justify-content: center;
+      gap: 8px; padding: 9px 10px;
+      background: var(--paper-raised); border: 1px solid var(--line);
+      border-radius: var(--radius); color: var(--ink-soft);
+      cursor: pointer; font-family: var(--font-sans);
+      font-size: 12px; font-weight: 500; letter-spacing: 0.02em;
+      white-space: nowrap; min-height: 36px; transition: var(--transition);
+    }
+    .sidebar-toggle:hover { border-color: var(--brass); color: var(--brass); }
+    .sidebar-toggle .chev { font-size: 15px; line-height: 1; flex-shrink: 0; }
+    .sidebar-toggle .label { font-size: 11.5px; }
+
+    body.sidebar-collapsed .grid { grid-template-columns: 48px minmax(0, 1fr); gap: 14px; }
+    body.sidebar-collapsed #inputCol { display: none; }
+    body.sidebar-collapsed .sidebar-toggle {
+      flex-direction: column; gap: 10px; padding: 12px 4px; min-height: 0;
+    }
+    body.sidebar-collapsed .sidebar-toggle .label {
+      writing-mode: vertical-rl; transform: rotate(180deg);
+      font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase;
+    }
+    @media (max-width: 1000px) {
+      .grid { grid-template-columns: 300px minmax(0, 1fr); gap: 18px; }
+      body.sidebar-collapsed .grid { grid-template-columns: 48px minmax(0, 1fr); }
+    }
+    @media (max-width: 760px) {
+      .grid { display: block; }
+      .grid > * { width: 100%; }
+      .grid > #output { margin-top: 16px; }
+      #sidebar { margin-bottom: 16px; }
+      body.sidebar-collapsed .grid { display: block; }
+      body.sidebar-collapsed #inputCol { display: none; }
+      body.sidebar-collapsed .sidebar-toggle { flex-direction: row; gap: 8px; padding: 9px 12px; }
+      body.sidebar-collapsed .sidebar-toggle .label {
+        writing-mode: horizontal-tb; transform: none; text-transform: none;
+        letter-spacing: 0.02em; font-size: 12px;
+      }
+    }
+
+    .panel {
+      background: var(--paper-raised);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px 16px 18px;
+      width: 100%;
+      box-shadow: var(--shadow-card);
+      transition: var(--transition);
+    }
+    .panel h2 {
+      font-family: var(--font-serif);
+      font-size: 15px;
+      font-weight: 600;
+      margin: 0 0 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .panel.collapsed { padding-bottom: 14px; }
+    .panel.collapsed .panel-body { display: none; }
+    .panel.collapsed h2 { margin-bottom: 0; }
+
+    .panel-toggle {
+      flex-shrink: 0; width: 24px; height: 24px;
+      display: flex; align-items: center; justify-content: center;
+      border: 1px solid var(--line); background: var(--paper);
+      color: var(--ink-soft); border-radius: 3px; cursor: pointer;
+      font-size: 11px; line-height: 1; padding: 0;
+      transition: var(--transition);
+    }
+    .panel-toggle:hover { border-color: var(--brass); color: var(--brass); }
+
+    label {
+      display: block; font-size: 12px; color: var(--ink-soft);
+      margin-bottom: 4px; font-weight: 500;
+    }
+    input[type=text], input[type=number], input[type=date], select {
+      width: 100%; padding: 8px 9px;
+      border: 1px solid var(--line); border-radius: 3px;
+      background: var(--paper); color: var(--ink);
+      font-family: var(--font-mono); font-size: 13.5px;
+      transition: var(--transition);
+    }
+    input:focus, select:focus {
+      outline: 2px solid var(--brass); outline-offset: 1px; border-color: var(--brass);
+    }
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+    .input-hint { font-size: 11px; color: var(--ink-soft); margin-top: 8px; opacity: 0.9; }
+
+    /* --- spectrum type checkboxes in the sidebar --- */
+    .spec-flags {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .spec-flag-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--ink);
+      cursor: pointer;
+      margin-bottom: 0;
+      font-weight: 500;
+      user-select: none;
+    }
+    .spec-flag-label input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      min-width: 15px;
+      cursor: pointer;
+      accent-color: var(--brass);
+      margin: 0;
+      padding: 0;
+      flex-shrink: 0;
+    }
+
+    .btn-row { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+    button.primary {
+      flex: 1; padding: 11px 14px;
+      background: var(--ink); color: var(--paper-raised);
+      border: none; border-radius: 3px;
+      font-family: var(--font-sans); font-weight: 600; font-size: 13.5px;
+      cursor: pointer; letter-spacing: 0.01em;
+      transition: var(--transition);
+    }
+    button.primary:hover { background: var(--brass); color: #1a1200; }
+    button.ghost {
+      padding: 10px 14px; background: transparent; color: var(--ink-soft);
+      border: 1px solid var(--line); border-radius: 3px;
+      font-family: var(--font-sans); font-size: 12.5px;
+      cursor: pointer; transition: var(--transition);
+    }
+    button.ghost:hover { border-color: var(--ink); color: var(--ink); }
+    button.ghost.warn:hover { border-color: var(--red); color: var(--red); }
+
+    /* ============================================================
+       THE DOCUMENT
+       ============================================================ */
+    .doc {
+      background: var(--paper-raised);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 22px 24px 28px;
+      box-shadow: var(--shadow-card);
+      transition: var(--transition);
+    }
+    @media (max-width: 760px) { .doc { padding: 14px 12px 18px; } }
+
+    .doc-title {
+      text-align: center;
+      font-family: var(--font-serif);
+      font-size: 16px;
+      font-weight: 700;
+      margin: 0 0 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--ink);
+      letter-spacing: 0.01em;
+      text-transform: uppercase;
+    }
+
+    .doc-banner {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      text-align: center;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 12.5px;
+      padding: 14px 12px;
+      margin: 40px 0 26px;
+      color: var(--ink);
+      transition: var(--transition);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-card);
+    }
+
+    .tbl-scroll { width: 100%; overflow-x: auto; margin: 0 0 6px; }
+
+    table.doc-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--paper-raised);
+      transition: var(--transition);
+    }
+    table.doc-table th,
+    table.doc-table td {
+      border: 1px solid var(--line);
+      padding: 5px 8px;
+      font-size: 12.5px;
+      vertical-align: middle;
+      transition: var(--transition);
+    }
+    table.doc-table thead th {
+      background: var(--paper);
+      font-weight: 700;
+      text-align: center;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+    table.doc-table th.num, table.doc-table td.num { text-align: right; }
+    table.doc-table th.ctr, table.doc-table td.ctr { text-align: center; }
+    table.doc-table th.lblcol, table.doc-table th.refcol { text-align: left; }
+    table.doc-table td.vmid, table.doc-table th.vmid { vertical-align: middle; }
+    table.doc-table td.merged { background: var(--paper); }
+
+    table.doc-table td.lblcell {
+      font-weight: 600; color: var(--ink); white-space: nowrap;
+    }
+    table.doc-table td.refcell {
+      text-align: center; color: var(--brass); font-weight: 700;
+      width: 52px; white-space: nowrap; font-family: var(--font-mono);
+    }
+    table.doc-table td.computed {
+      font-family: var(--font-mono); font-weight: 600;
+      background: var(--paper); white-space: nowrap;
+    }
+    table.doc-table td.computed.totalcol { background: var(--brass-soft); }
+    table.doc-table thead th.totalcol { background: var(--brass-soft); }
+
+    /* --- nearly-expiring highlight (Effective Date column) --- */
+    table.doc-table td.expiring {
+      background: var(--orange-soft);
+      box-shadow: inset 0 0 0 1px var(--orange);
+    }
+    table.doc-table td.expiring input { background: transparent; font-weight: 700; }
+
+    table.doc-table tr.titlerow td {
+      background: rgba(128, 128, 128, 0.22);
+      font-family: var(--font-serif);
+      font-weight: 700;
+      text-align: left;
+      vertical-align: middle;
+      padding: 7px 12px;
+      font-size: 12.5px;
+      letter-spacing: 0.03em;
+      color: var(--ink);
+    }
+
+    table.doc-table tr.subtitlerow td {
+      background: var(--brass-soft);
+      font-weight: 700;
+      text-align: center;
+      padding: 5px 8px;
+      font-size: 12px;
+      letter-spacing: 0.03em;
+      color: var(--ink);
+    }
+
+    /* --- per-type header row in the backbone table --- */
+    table.doc-table tr.type-header-row td {
+      background: var(--brass-soft);
+      font-weight: 700;
+      text-align: left;
+      padding: 6px 10px;
+      font-size: 12.5px;
+      letter-spacing: 0.03em;
+      color: var(--ink);
+    }
+    table.doc-table tr.type-header-row td .type-row-flex {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    table.doc-table tr.type-header-row td .type-add-btn {
+      font-size: 11px;
+      padding: 3px 8px;
+    }
+
+    table.doc-table input {
+      width: 100%;
+      min-width: 60px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--ink);
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      padding: 3px 5px;
+      border-radius: 2px;
+      text-align: center;
+      transition: var(--transition);
+    }
+    table.doc-table input:hover { border-color: var(--line); }
+    table.doc-table input:focus {
+      outline: 2px solid var(--brass);
+      outline-offset: 0;
+      background: var(--paper);
+      border-color: var(--brass);
+    }
+    table.doc-table input.txt {
+      text-align: left;
+      font-family: var(--font-sans);
+      font-weight: 500;
+      min-width: 0;
+    }
+    table.doc-table input.num { text-align: right; }
+
+    /* --- rate input: center aligned --- */
+    table.doc-table input.rate-inp {
+      text-align: center;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      min-width: 60px;
+    }
+    /* --- rate input: readonly (computed) look --- */
+    table.doc-table input.rate-inp[readonly] {
+      color: var(--teal);
+      cursor: default;
+    }
+    table.doc-table input.rate-inp[readonly]:hover { border-color: transparent; }
+    table.doc-table input.rate-inp[readonly]:focus {
+      outline: none;
+      background: transparent;
+      border-color: transparent;
+    }
+
+    /* --- rate display cells (Summary table) --- */
+    table.doc-table td.rate-cell {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      text-align: center;
+      vertical-align: middle;
+      background: var(--paper);
+      white-space: nowrap;
+      color: var(--ink);
+    }
+
+    table.doc-table input[type="date"] {
+      text-align: left;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      min-width: 120px;
+    }
+
+    /* --- dropdown lists: right aligned --- */
+    table.doc-table select {
+      width: 100%;
+      min-width: 60px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--ink);
+      font-family: var(--font-sans);
+      font-size: 12.5px;
+      font-weight: 500;
+      padding: 3px 5px;
+      border-radius: 2px;
+      text-align: right;
+      text-align-last: right;
+      direction: ltr;
+      transition: var(--transition);
+    }
+    table.doc-table select:hover { border-color: var(--line); }
+    table.doc-table select:focus {
+      outline: 2px solid var(--brass);
+      outline-offset: 0;
+      background: var(--paper);
+      border-color: var(--brass);
+    }
+    table.doc-table select option {
+      background: var(--paper-raised);
+      color: var(--ink);
+      text-align: right;
+    }
+
+    .row-add-btn, .row-del-btn {
+      border: 1px solid var(--line);
+      background: var(--paper);
+      color: var(--ink-soft);
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 12px;
+      padding: 4px 8px;
+      transition: var(--transition);
+    }
+    .row-add-btn:hover { border-color: var(--brass); color: var(--brass); }
+    .row-del-btn { color: var(--red); padding: 3px 7px; font-size: 13px; line-height: 1; }
+    .row-del-btn:hover { background: var(--red-soft); }
+
+    .toolbar-row {
+      display: flex;
+      gap: 8px;
+      margin: 8px 0 4px;
+      flex-wrap: wrap;
+    }
+
+    .sl-cell {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: var(--ink);
+      background: var(--paper);
+    }
+
+    .empty-note {
+      color: var(--ink-soft);
+      font-style: italic;
+      padding: 14px 10px;
+      font-size: 12.5px;
+    }
+
+    /* ============================================================
+       QUARTER TABLES — control columns
+       ============================================================ */
+    table.doc-table td.q-ctrl {
+      background: var(--paper);
+      padding: 4px !important;
+      width: 40px;
+      min-width: 40px;
+      text-align: center;
+      vertical-align: middle;
+    }
+    .ctrl-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      align-items: center;
+      justify-content: center;
+    }
+    .ctrl-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 1px solid var(--line);
+      background: var(--paper-raised);
+      color: var(--ink-soft);
+      font-size: 15px;
+      line-height: 1;
+      padding: 0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+      font-family: var(--font-sans);
+      flex-shrink: 0;
+    }
+    .ctrl-btn:hover {
+      border-color: var(--brass);
+      color: var(--brass);
+      background: var(--brass-soft);
+    }
+    .ctrl-btn.ctrl-split { font-size: 13px; }
+    .ctrl-btn.ctrl-merge { font-size: 15px; }
+    .ctrl-btn.ctrl-remove { color: var(--red); font-size: 17px; }
+    .ctrl-btn.ctrl-remove:hover {
+      background: var(--red-soft);
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    /* textarea for remarks */
+    .remarks-box {
+      width: 100%;
+      min-height: 130px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      line-height: 1.6;
+      transition: var(--transition);
+      resize: vertical;
+    }
+    .remarks-box:focus {
+      outline: 2px solid var(--brass);
+      outline-offset: 1px;
+      border-color: var(--brass);
+    }
+
+    details.notes {
+      margin-top: 30px;
+      background: var(--paper-raised);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      box-shadow: var(--shadow-card);
+      transition: var(--transition);
+    }
+    details.notes summary {
+      cursor: pointer; font-family: var(--font-serif);
+      font-weight: 600; font-size: 14.5px;
+    }
+    details.notes ul { margin: 12px 0 0; padding-left: 20px; font-size: 13px; color: var(--ink-soft); }
+    details.notes li { margin-bottom: 8px; }
+    details.notes code {
+      font-family: var(--font-mono); background: var(--paper);
+      padding: 1px 5px; border-radius: 2px; font-size: 12px;
+    }
+
+    footer {
+      margin-top: 44px; font-size: 11.5px;
+      color: var(--ink-soft); text-align: center;
+    }
+
+    /* ============================================================
+       PRINT SHEET
+       ============================================================ */
+    #printSheet { display: none; }
+
+    @page { size: A4 portrait; margin: 9mm 8mm; }
+
+    .ps-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-bottom: 2px solid #000;
+      padding-bottom: 4px;
+      margin-bottom: 8px;
+    }
+    .ps-header .ps-left .ps-eyebrow {
+      font-size: 8pt;
+      font-weight: 700;
+      margin-bottom: 2px;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+    .ps-header .ps-left .ps-title {
+      font-family: var(--font-serif);
+      font-size: 13pt;
+      font-weight: 800;
+      color: #000;
+      margin: 0;
+      line-height: 1.15;
+      text-transform: uppercase;
+    }
+    .ps-header .ps-right {
+      font-size: 8pt;
+      text-align: right;
+      line-height: 1.3;
+      white-space: nowrap;
+    }
+    .ps-header .ps-right b { display: block; font-size: 9pt; font-weight: 700; }
+
+    .ps-block {
+      border: 1.5px solid #000;
+      border-radius: 0;
+      padding: 6px 8px 8px;
+      margin-bottom: 8px;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    .ps-block-title {
+      font-size: 9pt;
+      font-weight: 800;
+      margin: 0 0 5px;
+      padding-bottom: 3px;
+      border-bottom: 1.5px solid #000;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #000;
+    }
+    .ps-banner {
+      border: 1.5px solid #000;
+      background: #ddd;
+      text-align: center;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 9pt;
+      padding: 5px 8px;
+      margin: 8px 0 5px;
+      color: #000;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    table.ps-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 7.5pt;
+      color: #000;
+      table-layout: fixed;
+      margin-bottom: 4px;
+    }
+    table.ps-table th {
+      text-align: center;
+      font-weight: 700;
+      border: 0.7px solid #000;
+      padding: 3px 4px;
+      background: #eee;
+      line-height: 1.2;
+    }
+    table.ps-table td {
+      border: 0.7px solid #000;
+      padding: 2.5px 4px;
+      overflow-wrap: break-word;
+      word-break: break-word;
+      line-height: 1.25;
+      text-align: center;
+      vertical-align: middle;
+    }
+    table.ps-table td.num { text-align: right; }
+    table.ps-table td.left { text-align: left; }
+    table.ps-table tr.ps-titlerow td {
+      background: #ccc;
+      font-weight: 800;
+      text-align: left;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-size: 7.5pt;
+      padding: 4px 6px;
+    }
+    table.ps-table tr.ps-subtitlerow td {
+      background: #e9e9e9;
+      font-weight: 700;
+      text-align: center;
+      font-size: 7.5pt;
+      padding: 3px 5px;
+    }
+    table.ps-table tr.ps-typeheader td {
+      background: #e0e0e0;
+      font-weight: 800;
+      text-align: left;
+      font-size: 7.5pt;
+      padding: 3px 6px;
+    }
+    table.ps-table thead { display: table-header-group; }
+
+    .ps-footer {
+      margin-top: 8px;
+      font-size: 6.5pt;
+      color: #000;
+      text-align: right;
+    }
+
+    @media print {
+      html, body { background: #fff !important; color: #000 !important; }
+      .no-print,
+      .wrap > .grid,
+      .wrap > header.masthead,
+      details.notes,
+      .wrap > footer {
+        display: none !important;
+      }
+      .wrap { max-width: none; padding: 0; margin: 0; }
+      #printSheet { display: block !important; color: #000 !important; }
+      #printSheet * {
+        color: #000 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+      }
+      #printSheet table.ps-table th { background: #eee !important; }
+      #printSheet table.ps-table tr.ps-titlerow td { background: #ccc !important; }
+      #printSheet table.ps-table tr.ps-subtitlerow td { background: #e9e9e9 !important; }
+      #printSheet table.ps-table tr.ps-typeheader td { background: #e0e0e0 !important; }
+      #printSheet .ps-banner { background: #ddd !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <header class="masthead">
+      <div class="title-block">
+        <div class="eyebrow">SUC ASSESSMENT</div>
+        <h1>SPECTRUM DETAILS &amp; SUC RATE CALCULATION</h1>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <button class="ghost no-print" id="freshStartBtn" title="Delete browser cache and start with a blank form" style="padding:8px 14px; font-size:12.5px;">RESET ALL</button>
+        <div class="asof no-print">
+          Rate schedule as on<br><b id="asOnDisplay">—</b>
+        </div>
+        <div class="theme-toggle no-print" id="themeToggle" role="group" aria-label="Theme">
+          <button type="button" data-theme-value="light">Light</button>
+          <button type="button" data-theme-value="dark">Dark</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="grid">
+
+      <aside class="sidebar no-print" id="sidebar">
+        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle input sidebar" aria-expanded="true">
+          <span class="chev">‹</span>
+          <span class="label">Hide inputs</span>
+        </button>
+
+        <div id="inputCol">
+
+          <div class="panel">
+            <h2>Basic Details</h2>
+            <div class="field">
+              <label for="licenseeName">Licensee Name</label>
+              <input type="text" id="licenseeName" placeholder="e.g. ABC Telecom Ltd.">
+            </div>
+            <div class="field">
+              <label for="fyLabel">Financial Year</label>
+              <input type="text" id="fyLabel" placeholder="e.g. 2024-25">
+            </div>
+            <div class="input-hint">
+              The Financial Year drives the default quarter dates in all quarterly tables
+              (01-04-XXXX → 31-03-XXYY).
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2>Spectrum Types</h2>
+            <div class="spec-flags">
+              <label class="spec-flag-label"><input type="checkbox" data-spec-flag="GSM Access"> GSM Access</label>
+              <label class="spec-flag-label"><input type="checkbox" data-spec-flag="GSM Access (3G)"> GSM Access (3G)</label>
+              <label class="spec-flag-label"><input type="checkbox" data-spec-flag="GSM Access (BWA)"> GSM Access (BWA)</label>
+              <label class="spec-flag-label"><input type="checkbox" data-spec-flag="GSM MWA"> GSM MWA</label>
+              <label class="spec-flag-label"><input type="checkbox" data-spec-flag="GSM MWB"> GSM MWB</label>
+              <label class="spec-flag-label"><input type="checkbox" data-spec-flag="E-Band"> E-Band</label>
+              <label class="spec-flag-label"><input type="checkbox" data-spec-flag="Other"> Other</label>
+            </div>
+            <div class="input-hint">
+              Tick the spectrum types available. Ticking <b>GSM MWA / MWB / E-Band / Other</b>
+              adds a dedicated row-block for each in the <b>Backbone Spectrum</b> table.
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2>Computation</h2>
+            <div class="field">
+              <label for="asOnDate">Rate schedule as on</label>
+              <input type="date" id="asOnDate">
+            </div>
+            <div class="input-hint">
+              Used in the print header and for flagging spectrum holdings that are nearing expiry.
+              Does not affect any calculation.
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2>Actions</h2>
+            <div class="btn-row" style="margin-top:0">
+              <button class="primary" id="calcBtn">Recalculate</button>
+              <button class="ghost" id="clearBtn">Clear values</button>
+            </div>
+            <div class="btn-row">
+              <button class="ghost" id="printBtn" style="flex:1;">Print / save PDF</button>
+              <button class="ghost" id="xlsxBtn" style="flex:1;">Export to Excel</button>
+            </div>
+            <div class="input-hint">
+              Load a worked example with the spectrum holdings and the corresponding rate tables from your reference sheet.
+            </div>
+            <div class="btn-row">
+              <button class="ghost" id="exampleBtn" style="flex:1;">Load example data</button>
+            </div>
+          </div>
+
+        </div>
+      </aside>
+
+      <div id="output"></div>
+
+    </div>
+
+    <div id="printSheet"></div>
+
+    <details class="notes no-print">
+      <summary>How this form works &amp; what gets computed</summary>
+      <ul>
+        <li><b>Basic Details.</b> Licensee Name and Financial Year. They drive the heading of Table 1, the print header and the default quarter dates.</li>
+        <li><b>Spectrum Types.</b> Tick the spectrum types available. Ticking <b>GSM MWA, GSM MWB, E-Band or Other</b> adds a dedicated row-block for that type inside the <b>Backbone Spectrum</b> table — each block has its own Quarter / From / To / SUC Rate / Weighted Average rows.</li>
+        <li><b>Spectrum Holdings of M/s …</b> One row per allotment. <b>Sl No is generated automatically</b>. <b>Technology</b> is a right-aligned drop-down. All values are vertically centred. Near-expiry rows are shaded orange in the Effective Date column.</li>
+        <li><b>A. SUC Rate for GSM Access Spectrum.</b> Populated automatically from Table 1 — only GSM Access / GSM Access (3G) / GSM Access (BWA) rows appear. “Quantum of Spectrum from 16.08.2016” is <b>2 × Quantum</b> when the Frequency Band is 2100 MHz or below (bands above 2100 MHz keep the same quantum).</li>
+        <li><b>B. Weighted Average of SUC Rate for the Quarter.</b> The <b>SUC Rate</b> cell for each period is auto-computed as <code>ROUNDUP(Σ(Quantum2016 × Qn) / Σ(Quantum2016), 4)</code> — only counting spectrum rows whose <b>Spectrum Effective Date ≤ period To</b> AND <b>Spectrum Expiry Date ≥ period From</b>. The <b>Weighted Average</b> cell is <code>Σ(SUC Rate × days) / Σ(days)</code>.</li>
+        <li><b>II. Calculation of SUC Rate for GSM MWA/MWB Spectrum.</b> Contains <b>A. SUC Rate for Backbone Spectrum</b> — each ticked backbone spectrum type gets its own row-block. The <b>Weighted Average</b> cell is auto-computed as <code>Σ(rate × days) / Σ(days)</code>.</li>
+        <li><b>III. Summary of SUC Rate Calculation.</b> Fully derived — the <b>MAIN</b> column mirrors the “Weighted Average” of the GSM Access quarterly table, and each backbone column mirrors the corresponding type’s “Weighted Average”. Values are rounded to 4 decimals, shown with a minimum of 2 decimals and a trailing <code>%</code> (e.g. <code>5.00 %</code>).</li>
+        <li><b>Remarks.</b> A free-form text area — appears verbatim in the print sheet.</li>
+        <li><b>Paste from Excel.</b> Copy a rectangular block from Excel and paste into the first cell of any table.</li>
+        <li><b>Print / PDF.</b> Builds a black-and-white print-only sheet and opens the browser print dialog.</li>
+        <li><b>Persistence.</b> Everything is remembered in your browser. <b>RESET ALL</b> wipes the saved cache and returns a blank form.</li>
+      </ul>
+    </details>
+
+    <footer>All values are stored exactly as typed. Calculations use full precision internally.</footer>
+
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    /* ============================================================
+       CONSTANTS
+       ============================================================ */
+    var TECH_OPTIONS = [
+      'GSM Access',
+      'GSM Access (3G)',
+      'GSM Access (BWA)',
+      'GSM MWA',
+      'GSM MWB',
+      'E-Band',
+      'Other'
+    ];
+    var GSM_ACCESS_TECHS = ['GSM Access', 'GSM Access (3G)', 'GSM Access (BWA)'];
+    var BACKBONE_TYPES = ['GSM MWA', 'GSM MWB', 'E-Band', 'Other'];
+
+    var EXPIRY_WARN_MONTHS = 12;
+    var DAY_MS = 86400000;
+
+    /* ============================================================
+       THEME TOGGLE
+       ============================================================ */
+    (function themeInit() {
+      var root = document.documentElement;
+      var toggle = document.getElementById('themeToggle');
+      function applyTheme(theme) {
+        if (theme === 'dark') root.setAttribute('data-theme', 'dark');
+        else root.setAttribute('data-theme', 'light');
+        var btns = toggle.querySelectorAll('button[data-theme-value]');
+        for (var i = 0; i < btns.length; i++) {
+          btns[i].classList.toggle('active', btns[i].getAttribute('data-theme-value') === theme);
+        }
+      }
+      var saved = null;
+      try { saved = localStorage.getItem('sie_theme'); } catch (e) {}
+      var startTheme;
+      if (saved === 'dark' || saved === 'light') startTheme = saved;
+      else startTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      applyTheme(startTheme);
+      toggle.addEventListener('click', function (e) {
+        var btn = e.target.closest('button[data-theme-value]');
+        if (!btn) return;
+        applyTheme(btn.getAttribute('data-theme-value'));
+        try { localStorage.setItem('sie_theme', btn.getAttribute('data-theme-value')); } catch (err) {}
+      });
+      var mq = window.matchMedia('(prefers-color-scheme: dark)');
+      var mqListener = function (e) {
+        var hasSaved = null;
+        try { hasSaved = localStorage.getItem('sie_theme'); } catch (err) {}
+        if (!hasSaved) applyTheme(e.matches ? 'dark' : 'light');
+      };
+      if (mq.addEventListener) mq.addEventListener('change', mqListener);
+      else if (mq.addListener) mq.addListener(mqListener);
+    })();
+
+    /* ============================================================
+       HELPERS
+       ============================================================ */
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+    function parseDateInput(val) {
+      if (!val) return null;
+      var p = String(val).split('-').map(Number);
+      if (p.length !== 3 || p.some(isNaN)) return null;
+      return new Date(p[0], p[1] - 1, p[2]);
+    }
+    function toInputVal(d) {
+      if (!d) return '';
+      var yyyy = d.getFullYear(),
+          mm = String(d.getMonth() + 1).padStart(2, '0'),
+          dd = String(d.getDate()).padStart(2, '0');
+      return yyyy + '-' + mm + '-' + dd;
+    }
+    function fmtDate(d) {
+      if (!d) return '—';
+      var dd = String(d.getDate()).padStart(2, '0'),
+          mm = String(d.getMonth() + 1).padStart(2, '0');
+      return dd + '-' + mm + '-' + d.getFullYear();
+    }
+    var MONTHS_LONG = ['January','February','March','April','May','June','July',
+                       'August','September','October','November','December'];
+    function longDateStr(inputVal) {
+      var d = parseDateInput(inputVal);
+      if (!d) return '—';
+      return d.getDate() + ' ' + MONTHS_LONG[d.getMonth()] + ' ' + d.getFullYear();
+    }
+    function dmyToISO(dmy) {
+      if (!dmy) return '';
+      var m = String(dmy).match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+      if (!m) return '';
+      return m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0');
+    }
+    function isoToDMY(iso) {
+      if (!iso) return '';
+      var m = String(iso).match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+      if (!m) return '';
+      return m[3].padStart(2, '0') + '-' + m[2].padStart(2, '0') + '-' + m[1];
+    }
+    function parseLooseDate(s) {
+      if (!s) return null;
+      s = String(s).trim();
+      if (!s) return null;
+      var m = s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})$/);
+      if (m) {
+        var d1 = +m[1], mo1 = +m[2], y1 = +m[3];
+        if (y1 < 100) y1 += 2000;
+        if (mo1 >= 1 && mo1 <= 12 && d1 >= 1 && d1 <= 31) return new Date(y1, mo1 - 1, d1);
+      }
+      m = s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})$/);
+      if (m) {
+        var y2 = +m[1], mo2 = +m[2], d2 = +m[3];
+        if (mo2 >= 1 && mo2 <= 12 && d2 >= 1 && d2 <= 31) return new Date(y2, mo2 - 1, d2);
+      }
+      var dt = new Date(s);
+      return isNaN(dt.getTime()) ? null : dt;
+    }
+    function cleanNumStr(v) {
+      if (v == null) return '';
+      var s = String(v).trim();
+      if (!s) return '';
+      var neg = false;
+      if (/^\(.*\)$/.test(s)) { neg = true; s = s.slice(1, -1); }
+      s = s.replace(/[\u20B9,\s]/g, '').replace(/%/g, '');
+      if (s.charAt(0) === '-') { neg = true; s = s.slice(1); }
+      s = s.replace(/[^0-9.]/g, '');
+      var parts = s.split('.');
+      if (parts.length > 2) s = parts[0] + '.' + parts.slice(1).join('');
+      if (!s || s === '.') return '';
+      return (neg ? '-' : '') + s;
+    }
+    function round6(n) { return Math.round(n * 1e6) / 1e6; }
+
+    /* Round a rate to 4 decimals (Excel =ROUND(x,4)), keep at least 2 decimals,
+       and append " %" (with a leading space). E.g. 5 -> "5.00 %", 0.53 -> "0.53 %",
+       12.35687455 -> "12.3569 %". Non-numeric input is returned unchanged. */
+    function roundRatePct(s) {
+      if (s == null) return '';
+      var str = String(s).trim();
+      if (!str) return '';
+      var cleaned = str.replace(/[%\s,]/g, '');
+      var n = parseFloat(cleaned);
+      if (isNaN(n)) return str;
+
+      var rounded = Math.round(n * 10000) / 10000;
+      var fixed = rounded.toFixed(4);
+
+      fixed = fixed.replace(/0+$/, '').replace(/\.$/, '');
+      var parts = fixed.split('.');
+      if (parts.length === 1) parts.push('00');
+      else if (parts[1].length === 0) parts[1] = '00';
+      else if (parts[1].length === 1) parts[1] += '0';
+
+      return parts[0] + '.' + parts[1] + ' %';
+    }
+
+    /* Same numeric rounding but returns a Number (used for Excel cells). */
+    function roundRateNum(s) {
+      if (s == null) return '';
+      var str = String(s).trim();
+      if (!str) return '';
+      var cleaned = str.replace(/[%\s,]/g, '');
+      var n = parseFloat(cleaned);
+      if (isNaN(n)) return str;
+      return Math.round(n * 10000) / 10000;
+    }
+
+    /* Excel ROUNDUP to 4 decimal places. */
+    function roundUp4(n) {
+      if (n == null || isNaN(n) || !isFinite(n)) return '';
+      var sign = n < 0 ? -1 : 1;
+      var scaled = Math.abs(n) * 10000;
+      var eps = 1e-9;
+      var ceiled = Math.ceil(scaled - eps);
+      return sign * ceiled / 10000;
+    }
+
+    /* Is this DOM field a rate field? */
+    function isRateField(el) {
+      if (!el || !el.dataset) return false;
+      var kind = el.dataset.kind;
+      var field = el.dataset.field;
+      if (!kind || !field) return false;
+      if (kind === 'spectrumRates') return true;
+      if (kind === 'mainQuarterly' && (field === 'rate' || field === 'weighted')) return true;
+      if (kind === 'mwaQuarterly'  && (field === 'rate' || field === 'weighted')) return true;
+      return false;
+    }
+
+    /* ============================================================
+       CALCULATION HELPERS
+       ============================================================ */
+
+    /* Inclusive day count between two dd-mm-yyyy dates. */
+    function daysBetweenInclusive(fromStr, toStr) {
+      var from = parseLooseDate(fromStr);
+      var to   = parseLooseDate(toStr);
+      if (!from || !to) return 0;
+      var d = Math.round((to.getTime() - from.getTime()) / DAY_MS) + 1;
+      return d > 0 ? d : 0;
+    }
+
+    /* Weighted average across the parts of a quarter:
+         Σ(rate_i × days_i) / Σ(days_i)
+       Returns a numeric string (or '' if nothing can be computed). */
+    function computeWeightedAvg(parts) {
+      if (!parts || !parts.length) return '';
+      var totalDays = 0;
+      var sum = 0;
+      for (var i = 0; i < parts.length; i++) {
+        var p = parts[i];
+        var rate = parseFloat(cleanNumStr(p.rate));
+        if (isNaN(rate)) continue;
+        var d = daysBetweenInclusive(p.from, p.to);
+        if (d <= 0) continue;
+        sum += rate * d;
+        totalDays += d;
+      }
+      if (totalDays === 0) return '';
+      return String(Math.round((sum / totalDays) * 1e8) / 1e8);
+    }
+
+    /* Is a given spectrum row active during [fromStr, toStr]?
+       Active iff effective ≤ to AND expiry ≥ from. Both dates required. */
+    function isSpectrumActiveDuring(row, fromStr, toStr) {
+      var from = parseLooseDate(fromStr);
+      var to   = parseLooseDate(toStr);
+      if (!from || !to) return false;
+      var eff  = parseLooseDate(row.effective);
+      var exp  = parseLooseDate(row.expiry);
+      if (!eff || !exp) return false;
+      return eff.getTime() <= to.getTime() && exp.getTime() >= from.getTime();
+    }
+
+    /* Auto-computed SUC Rate for a period covering the qIdx-th quarter column
+       (0..3 → q1..q4), restricted to spectrum rows active during [fromStr,toStr]:
+         ROUNDUP( Σ(quantum2016 × Qn) / Σ(quantum2016), 4 ) */
+    function computeAccessQuarterRate(qIdx, fromStr, toStr) {
+      var qField = ['q1','q2','q3','q4'][qIdx];
+      if (!qField) return '';
+      if (!fromStr || !toStr) return '';
+      var rows = gsmAccessRows();
+      var numerator = 0;
+      var denominator = 0;
+      rows.forEach(function (o) {
+        if (!isSpectrumActiveDuring(o.row, fromStr, toStr)) return;
+        var q2016 = parseFloat(cleanNumStr(computeQuantum2016(o.row)));
+        if (isNaN(q2016) || q2016 === 0) return;
+        var rate = parseFloat(cleanNumStr(o.row[qField]));
+        if (isNaN(rate)) return;
+        numerator += q2016 * rate;
+        denominator += q2016;
+      });
+      if (denominator === 0) return '';
+      var avg = numerator / denominator;
+      var rounded = roundUp4(avg);
+      return String(rounded);
+    }
+
+    /* Convenience: computed weighted average for a whole quarter row. */
+    function getQuarterWeighted(row) {
+      if (!row || !row.parts || !row.parts.length) return '';
+      var w = computeWeightedAvg(row.parts);
+      if (w === '') return '';
+      /* Weighted Average is shown to 2 decimals, rounded UP (e.g. 4.2335 -> 4.24) */
+      var n = parseFloat(w);
+      if (isNaN(n)) return w;
+      return String(Math.ceil(Math.round(n * 100 * 1e6) / 1e6) / 100);
+    }
+
+    /* ---- Calculation breakdown (diagnostic) -------------------------------
+       For each quarter part, lists every GSM Access row with:
+       Included / Excluded (+ reason), Quantum2016, Qn, product. */
+    function buildBreakdownHTML() {
+      try { return buildBreakdownHTMLInner(); } catch (e) { return ''; }
+    }
+    function buildBreakdownHTMLInner() {
+      var rows = gsmAccessRows();
+      var h = '<details class="no-print" id="sucBreakdown" style="margin-top:10px;"><summary style="cursor:pointer;font-weight:600;">Show calculation breakdown (which rows are counted in each quarter)</summary>';
+      state.mainQuarterly.forEach(function (q, qi) {
+        if (qi > 3) return;
+        (q.parts || []).forEach(function (p) {
+          h += '<div style="margin:10px 0 4px;font-weight:600;">' + esc(q.quarter || ('Q' + (qi + 1))) + ' &nbsp; ' + esc(p.from) + ' → ' + esc(p.to) + '</div>';
+          h += '<div class="tbl-scroll"><table class="doc-table"><tbody><tr><th>#</th><th>Year</th><th>Tech</th><th>Band</th><th>Effective</th><th>Expiry</th><th>Quantum 2016</th><th>Q' + (qi + 1) + '</th><th>Status</th><th>Q2016 × Q' + (qi + 1) + '</th></tr>';
+          var num = 0, den = 0, field = ['q1','q2','q3','q4'][qi];
+          rows.forEach(function (o, k) {
+            var r = o.row, status = '', prod = '';
+            var q2016 = parseFloat(cleanNumStr(computeQuantum2016(r)));
+            var rate = parseFloat(cleanNumStr(r[field]));
+            var from = parseLooseDate(p.from), to = parseLooseDate(p.to);
+            var eff = parseLooseDate(r.effective), exp = parseLooseDate(r.expiry);
+            if (!from || !to) status = 'EXCLUDED – enter this period\'s From and To dates';
+            else if (!eff || !exp) status = 'EXCLUDED – effective/expiry date missing or unreadable';
+            else if (!(eff.getTime() <= to.getTime())) status = 'EXCLUDED – not yet effective';
+            else if (!(exp.getTime() >= from.getTime())) status = 'EXCLUDED – already expired';
+            else if (isNaN(q2016) || q2016 === 0) status = 'EXCLUDED – quantum missing';
+            else if (isNaN(rate)) status = 'EXCLUDED – Q' + (qi + 1) + ' rate missing';
+            else { status = 'Included'; prod = (q2016 * rate).toFixed(4); num += q2016 * rate; den += q2016; }
+            h += '<tr' + (status === 'Included' ? '' : ' style="opacity:.55"') + '><td class="ctr">' + (k + 1) + '</td><td class="ctr">' + esc(r.year) + '</td><td class="ctr">' + esc(r.tech) + '</td><td class="ctr">' + esc(r.freqBand) + '</td><td class="ctr">' + esc(r.effective) + '</td><td class="ctr">' + esc(r.expiry) + '</td><td class="ctr">' + (isNaN(q2016) ? '—' : q2016) + '</td><td class="ctr">' + esc(r[field]) + '</td><td>' + status + '</td><td class="ctr">' + prod + '</td></tr>';
+          });
+          h += '<tr><th colspan="6">Totals</th><th class="ctr">' + den + '</th><th></th><th></th><th class="ctr">' + num.toFixed(4) + '</th></tr>';
+          h += '<tr><th colspan="9">SUC Rate = ROUNDUP(Σ products / Σ Quantum 2016, 4)</th><th class="ctr">' + (den ? roundUp4(num / den) : '—') + '</th></tr>';
+          h += '</tbody></table></div>';
+        });
+      });
+      return h + '</details>';
+    }
+
+    /* Update every quarter part's `rate` in state.mainQuarterly to the latest
+       auto-computed value (based on the current Table A inputs). */
+    function syncAutoRates() {
+      state.mainQuarterly.forEach(function (row, i) {
+        if (i > 3) return;
+        row.parts.forEach(function (part) {
+          var autoRate = computeAccessQuarterRate(i, part.from, part.to);
+          part.rate = autoRate;   /* clear stale value when no row is active */
+        });
+      });
+    }
+
+    /* ============================================================
+       FINANCIAL YEAR HELPERS
+       ============================================================ */
+    function fyYears() {
+      var s = (state.fyLabel || '').trim();
+      var m = s.match(/(\d{4})\s*[-–\/]\s*(\d{2,4})/);
+      if (!m) return null;
+      var y1 = parseInt(m[1], 10);
+      var raw2 = m[2];
+      var y2 = raw2.length === 2
+        ? Math.floor(y1 / 100) * 100 + parseInt(raw2, 10)
+        : parseInt(raw2, 10);
+      if (!y1 || !y2) return null;
+      return { start: y1, end: y2 };
+    }
+    function quarterDefaultDates(qIdx) {
+      var fy = fyYears();
+      if (!fy) return { from: '', to: '' };
+      var y1 = fy.start, y2 = fy.end;
+      switch (qIdx) {
+        case 0: return { from: '01-04-' + y1, to: '30-06-' + y1 };
+        case 1: return { from: '01-07-' + y1, to: '30-09-' + y1 };
+        case 2: return { from: '01-10-' + y1, to: '31-12-' + y1 };
+        case 3: return { from: '01-01-' + y2, to: '31-03-' + y2 };
+      }
+      return { from: '', to: '' };
+    }
+    function refreshAutoDates() {
+      state.mainQuarterly.forEach(function (row, i) {
+        if (i > 3) return;
+        if (!row.parts || row.parts.length !== 1) return;
+        var p = row.parts[0];
+        if (p.auto === false) return;
+        var d = quarterDefaultDates(i);
+        p.from = d.from;
+        p.to = d.to;
+        p.auto = true;
+      });
+      Object.keys(state.mwaQuarterly || {}).forEach(function (t) {
+        var arr = state.mwaQuarterly[t];
+        if (!arr) return;
+        arr.forEach(function (row, i) {
+          if (i > 3) return;
+          if (!row.parts || row.parts.length !== 1) return;
+          var p = row.parts[0];
+          if (p.auto === false) return;
+          var d = quarterDefaultDates(i);
+          p.from = d.from;
+          p.to = d.to;
+          p.auto = true;
+        });
+      });
+    }
+
+    /* ============================================================
+       STATE
+       ============================================================ */
+    var STORE_KEY   = 'pvii_spec_v1_state';
+    var PANEL_KEY   = 'pvii_spec_panels_v1';
+    var SIDEBAR_KEY = 'pvii_spec_sidebar_v1';
+
+    function blankSpectrumRow() {
+      return {
+        freqBand: '', tech: '', year: '', quantum: '', shared: 'No',
+        effective: '', expiry: '',
+        q1: '', q2: '', q3: '', q4: ''
+      };
+    }
+    function blankQuarterPart(from, to, rate, auto) {
+      return { from: from || '', to: to || '', rate: rate || '', auto: auto !== false };
+    }
+    function blankQuarterlyRow(quarter) {
+      return {
+        quarter: quarter || '',
+        weighted: '',
+        parts: [ blankQuarterPart('', '', '', true) ]
+      };
+    }
+    function blankSummaryRow() {
+      return { quarter: '', main: '', mwa: '' };
+    }
+
+    function blankSpectrumFlags() {
+      return {
+        'GSM Access': true,
+        'GSM Access (3G)': true,
+        'GSM Access (BWA)': true,
+        'GSM MWA': true,
+        'GSM MWB': false,
+        'E-Band': false,
+        'Other': false
+      };
+    }
+
+    function blankState() {
+      return {
+        licensee: '',
+        fyLabel: '',
+        asOn: '',
+        spectrumFlags: blankSpectrumFlags(),
+        spectrum: [ blankSpectrumRow(), blankSpectrumRow(), blankSpectrumRow() ],
+        mainQuarterly: [
+          blankQuarterlyRow('Q1'),
+          blankQuarterlyRow('Q2'),
+          blankQuarterlyRow('Q3'),
+          blankQuarterlyRow('Q4')
+        ],
+        mwaQuarterly: {},
+        summary: [
+          { quarter: 'I',   main: '', mwa: '' },
+          { quarter: 'II',  main: '', mwa: '' },
+          { quarter: 'III', main: '', mwa: '' },
+          { quarter: 'IV',  main: '', mwa: '' }
+        ],
+        remarks: ''
+      };
+    }
+
+    function buildTypeQuarters(startRate) {
+      var arr = [];
+      for (var i = 0; i < 4; i++) {
+        var d = quarterDefaultDates(i);
+        arr.push({
+          quarter: 'Q' + (i + 1),
+          weighted: startRate || '',
+          parts: [ blankQuarterPart(d.from, d.to, startRate || '', true) ]
+        });
+      }
+      return arr;
+    }
+
+    function exampleState() {
+      return {
+        licensee: 'ABC Telecom Ltd.',
+        fyLabel: '2024-25',
+        asOn: toInputVal(new Date(2025, 3, 1)),
+        spectrumFlags: {
+          'GSM Access': true,
+          'GSM Access (3G)': true,
+          'GSM Access (BWA)': true,
+          'GSM MWA': true,
+          'GSM MWB': false,
+          'E-Band': false,
+          'Other': false
+        },
+        spectrum: [
+          { freqBand:'900',   tech:'GSM Access',       year:'2015', quantum:'6.4',  shared:'No', effective:'31-08-2018', expiry:'11-12-2035', q1:'5.00%', q2:'5.00%', q3:'5.00%', q4:'5.00%' },
+          { freqBand:'900',   tech:'GSM Access',       year:'2015', quantum:'6',    shared:'No', effective:'12-12-2015', expiry:'11-12-2035', q1:'5.00%', q2:'5.00%', q3:'5.00%', q4:'5.00%' },
+          { freqBand:'1800',  tech:'GSM Access',       year:'2012', quantum:'1.25', shared:'No', effective:'31-08-2018', expiry:'18-12-2032', q1:'3.00%', q2:'3.00%', q3:'3.00%', q4:'3.00%' },
+          { freqBand:'1800',  tech:'GSM Access',       year:'2014', quantum:'7',    shared:'No', effective:'31-08-2018', expiry:'07-09-2034', q1:'5.00%', q2:'5.00%', q3:'5.00%', q4:'5.00%' },
+          { freqBand:'1800',  tech:'GSM Access',       year:'2014', quantum:'10',   shared:'No', effective:'08-09-2014', expiry:'07-09-2034', q1:'5.00%', q2:'5.00%', q3:'5.00%', q4:'5.00%' },
+          { freqBand:'1800',  tech:'GSM Access',       year:'2015', quantum:'1',    shared:'No', effective:'31-08-2018', expiry:'26-05-2035', q1:'5.00%', q2:'5.00%', q3:'5.00%', q4:'5.00%' },
+          { freqBand:'1800',  tech:'GSM Access',       year:'2016', quantum:'0.6',  shared:'No', effective:'31-08-2018', expiry:'09-11-2036', q1:'3.00%', q2:'3.00%', q3:'3.00%', q4:'3.00%' },
+          { freqBand:'1800',  tech:'GSM Access',       year:'2016', quantum:'0.15', shared:'No', effective:'31-08-2018', expiry:'18-12-2032', q1:'3.00%', q2:'3.00%', q3:'3.00%', q4:'3.00%' },
+          { freqBand:'2100',  tech:'GSM Access (3G)',  year:'2010', quantum:'5',    shared:'No', effective:'01-09-2010', expiry:'31-08-2030', q1:'5.00%', q2:'5.00%', q3:'5.00%', q4:'5.00%' },
+          { freqBand:'2100',  tech:'GSM Access (3G)',  year:'2015', quantum:'5',    shared:'No', effective:'31-08-2018', expiry:'26-05-2035', q1:'5.00%', q2:'5.00%', q3:'5.00%', q4:'5.00%' },
+          { freqBand:'2300',  tech:'GSM Access (BWA)', year:'2016', quantum:'10',   shared:'No', effective:'10-11-2016', expiry:'09-11-2036', q1:'3.00%', q2:'3.00%', q3:'3.00%', q4:'3.00%' },
+          { freqBand:'2500',  tech:'GSM Access (BWA)', year:'2016', quantum:'10',   shared:'No', effective:'10-11-2016', expiry:'09-11-2036', q1:'3.00%', q2:'3.00%', q3:'3.00%', q4:'3.00%' },
+          { freqBand:'2500',  tech:'GSM Access (BWA)', year:'2016', quantum:'10',   shared:'No', effective:'31-08-2018', expiry:'09-11-2036', q1:'3.00%', q2:'3.00%', q3:'3.00%', q4:'3.00%' },
+          { freqBand:'3300',  tech:'GSM Access',       year:'2022', quantum:'50',   shared:'No', effective:'17-08-2022', expiry:'16-08-2042', q1:'0.00%', q2:'0.00%', q3:'0.00%', q4:'0.00%' },
+          { freqBand:'26000', tech:'GSM Access',       year:'2022', quantum:'800',  shared:'No', effective:'17-08-2022', expiry:'16-08-2042', q1:'0.00%', q2:'0.00%', q3:'0.00%', q4:'0.00%' },
+          { freqBand:'MWA-GSM', tech:'GSM MWA',        year:'1996', quantum:'112',  shared:'No', effective:'23-03-1996', expiry:'09-10-2033' },
+          { freqBand:'MWA-GSM', tech:'GSM MWA',        year:'2007', quantum:'168',  shared:'No', effective:'12-12-2015', expiry:'10-10-2033' }
+        ],
+        mainQuarterly: [
+          { quarter:'Q1', weighted:'0.53%', parts:[ { from:'01-04-2024', to:'30-06-2024', rate:'0.53%', auto:true } ] },
+          { quarter:'Q2', weighted:'0.53%', parts:[ { from:'01-07-2024', to:'30-09-2024', rate:'0.53%', auto:true } ] },
+          { quarter:'Q3', weighted:'0.53%', parts:[ { from:'01-10-2024', to:'31-12-2024', rate:'0.53%', auto:true } ] },
+          { quarter:'Q4', weighted:'0.53%', parts:[ { from:'01-01-2025', to:'31-03-2025', rate:'0.53%', auto:true } ] }
+        ],
+        mwaQuarterly: {
+          'GSM MWA': buildTypeQuarters('1.10%')
+        },
+        summary: [
+          { quarter:'I',   main:'0.53%', mwa:'1.10%' },
+          { quarter:'II',  main:'0.53%', mwa:'1.10%' },
+          { quarter:'III', main:'0.53%', mwa:'1.10%' },
+          { quarter:'IV',  main:'0.53%', mwa:'1.10%' }
+        ],
+        remarks:
+          '1) For 3G Spectrum of 2010, SUC rate is in accordance with the clause (f) of Annexure 1 in DoT OM dated 12.08.2016 (This is subject to the outcome of the court case TP 28/2016 pending in TDSAT)\n\n' +
+          '2) MWA rates are as per DoT instructions No:1012/07/2019-WR dated 15.11.2019 and is processed in accordance with the J-14025/200(11)/06-NT dated 03.11.2006.'
+      };
+    }
+
+    function normalizeQuarterlyArray(arr) {
+      return arr.map(function (r) {
+        if (r && Array.isArray(r.parts)) {
+          return {
+            quarter: r.quarter || '',
+            weighted: r.weighted || '',
+            parts: r.parts.map(function (p) {
+              return {
+                from: p.from || '',
+                to: p.to || '',
+                rate: p.rate || '',
+                auto: p.auto === undefined ? true : !!p.auto
+              };
+            })
+          };
+        }
+        return {
+          quarter: r && r.quarter ? r.quarter : '',
+          weighted: r && r.weighted ? r.weighted : '',
+          parts: [ blankQuarterPart('', '', (r && r.rate) || '', false) ]
+        };
+      });
+    }
+
+    function migrateMwaQuarterly(oldVal) {
+      var out = {};
+      if (!oldVal) return out;
+      if (Array.isArray(oldVal)) {
+        oldVal.forEach(function (row, i) {
+          if (!row || !row.types) return;
+          Object.keys(row.types).forEach(function (t) {
+            if (!out[t]) out[t] = [];
+            var g = row.types[t] || {};
+            out[t].push({
+              quarter: row.quarter || ('Q' + (i + 1)),
+              weighted: g.weighted || '',
+              parts: (g.parts || []).map(function (p) {
+                return {
+                  from: p.from || '',
+                  to: p.to || '',
+                  rate: p.rate || '',
+                  auto: p.auto === undefined ? true : !!p.auto
+                };
+              })
+            });
+          });
+        });
+      } else if (typeof oldVal === 'object') {
+        Object.keys(oldVal).forEach(function (t) {
+          out[t] = normalizeQuarterlyArray(oldVal[t] || []);
+        });
+      }
+      Object.keys(out).forEach(function (t) {
+        out[t].forEach(function (row) {
+          if (!row.parts || !row.parts.length) {
+            row.parts = [ blankQuarterPart('', '', '', false) ];
+          }
+        });
+      });
+      return out;
+    }
+
+    function normalizeState(s) {
+      var out = blankState();
+      if (!s) return out;
+      out.licensee = s.licensee || '';
+      out.fyLabel = s.fyLabel || '';
+      out.asOn = s.asOn || '';
+
+      if (s.spectrumFlags && typeof s.spectrumFlags === 'object') {
+        Object.keys(out.spectrumFlags).forEach(function (k) {
+          if (k in s.spectrumFlags) out.spectrumFlags[k] = !!s.spectrumFlags[k];
+        });
+      }
+
+      if (Array.isArray(s.spectrum) && s.spectrum.length) {
+        out.spectrum = s.spectrum.map(function (r) { return Object.assign(blankSpectrumRow(), r); });
+      }
+      if (Array.isArray(s.mainQuarterly) && s.mainQuarterly.length) {
+        out.mainQuarterly = normalizeQuarterlyArray(s.mainQuarterly);
+      }
+      out.mwaQuarterly = migrateMwaQuarterly(s.mwaQuarterly);
+
+      if (Array.isArray(s.summary) && s.summary.length) {
+        out.summary = s.summary.map(function (r) { return Object.assign(blankSummaryRow(), r); });
+      }
+      out.remarks = s.remarks || '';
+      return out;
+    }
+
+    var state = blankState();
+
+    /* ============================================================
+       DERIVED VALUES
+       ============================================================ */
+    function spectrumHeadingText() {
+      var name = (state.licensee || '').trim() || '________';
+      var fy = (state.fyLabel || '').trim() || '________';
+      return 'Spectrum Holdings of M/s ' + name + ' (' + fy + ')';
+    }
+    function computeQuantum2016(row) {
+      var q = parseFloat(cleanNumStr(row.quantum));
+      if (isNaN(q)) return '';
+      var b = parseFloat(cleanNumStr(row.freqBand));
+      var v = (!isNaN(b) && b <= 2100) ? q * 2 : q;   /* <= 2100 MHz doubles; > 2100 MHz unchanged */
+      return String(round6(v));
+    }
+    function gsmAccessRows() {
+      var out = [];
+      state.spectrum.forEach(function (row, idx) {
+        if (GSM_ACCESS_TECHS.indexOf(row.tech) === -1) return;
+        out.push({ idx: idx, row: row });
+      });
+      return out;
+    }
+    function isExpiringSoon(row) {
+      var exp = parseLooseDate(row.expiry);
+      if (!exp) return false;
+      var base = parseDateInput(state.asOn);
+      if (!base) base = new Date();
+      base = new Date(base.getFullYear(), base.getMonth(), base.getDate());
+      var days = (exp.getTime() - base.getTime()) / DAY_MS;
+      return days <= EXPIRY_WARN_MONTHS * 30.44;
+    }
+    function techOptionsHTML(selected) {
+      var h = '<option value=""' + (!selected ? ' selected' : '') + '>— Select —</option>';
+      TECH_OPTIONS.forEach(function (t) {
+        h += '<option value="' + esc(t) + '"' + (selected === t ? ' selected' : '') + '>' + esc(t) + '</option>';
+      });
+      return h;
+    }
+    function quarterParts(row) {
+      if (!row) return [];
+      if (!row.parts || !row.parts.length) row.parts = [ blankQuarterPart('', '', '', false) ];
+      return row.parts;
+    }
+    function activeBackboneTypes() {
+      return BACKBONE_TYPES.filter(function (t) { return !!state.spectrumFlags[t]; });
+    }
+    function ensureBackboneTypeGroups() {
+      if (!state.mwaQuarterly || typeof state.mwaQuarterly !== 'object' || Array.isArray(state.mwaQuarterly)) {
+        state.mwaQuarterly = {};
+      }
+      activeBackboneTypes().forEach(function (t) {
+        if (!state.mwaQuarterly[t]) {
+          state.mwaQuarterly[t] = buildTypeQuarters('');
+        }
+      });
+    }
+
+    /* ============================================================
+       HTML BUILDERS — Table 1 : Spectrum Holdings
+       ============================================================ */
+    function spectrumTableHTML() {
+      var h = '<div class="tbl-scroll"><table class="doc-table" id="spectrumTable"><tbody>';
+      h += '<tr class="titlerow"><td colspan="9" id="spectrumHeading">' + esc(spectrumHeadingText()) + '</td></tr>';
+      h += '<tr>';
+      h += '<th class="ctr" style="width:52px;">Sl No</th>';
+      h += '<th class="ctr">Frequency Band</th>';
+      h += '<th class="ctr">Technology</th>';
+      h += '<th class="ctr">Admin Allotment / Auction Year</th>';
+      h += '<th class="ctr">Quantum of Spectrum</th>';
+      h += '<th class="ctr">Is Shared</th>';
+      h += '<th class="ctr">Spectrum Effective Date</th>';
+      h += '<th class="ctr">Spectrum Expiry Date</th>';
+      h += '<th class="ctr" style="width:34px;"></th>';
+      h += '</tr>';
+
+      state.spectrum.forEach(function (row, i) {
+        var soon = isExpiringSoon(row);
+        h += '<tr>';
+        h += '<td class="ctr vmid sl-cell">' + (i + 1) + '</td>';
+        h += '<td class="ctr vmid"><input type="text" class="txt" data-kind="spectrum" data-row="' + i + '" data-field="freqBand" value="' + esc(row.freqBand) + '"></td>';
+        h += '<td class="ctr vmid"><select data-kind="spectrum" data-row="' + i + '" data-field="tech">' + techOptionsHTML(row.tech) + '</select></td>';
+        h += '<td class="ctr vmid"><input type="text" class="txt" data-kind="spectrum" data-row="' + i + '" data-field="year" value="' + esc(row.year) + '"></td>';
+        h += '<td class="ctr vmid"><input type="text" class="txt" data-kind="spectrum" data-row="' + i + '" data-field="quantum" value="' + esc(row.quantum) + '"></td>';
+        h += '<td class="ctr vmid"><select data-kind="spectrum" data-row="' + i + '" data-field="shared">' +
+              '<option value="No"' + (row.shared === 'No' ? ' selected' : '') + '>No</option>' +
+              '<option value="Yes"' + (row.shared === 'Yes' ? ' selected' : '') + '>Yes</option>' +
+              '</select></td>';
+        h += '<td class="ctr vmid' + (soon ? ' expiring' : '') + '"' +
+             (soon ? ' title="Expiring within ' + EXPIRY_WARN_MONTHS + ' months of the rate-schedule date"' : '') + '>' +
+             '<input type="text" class="txt" data-kind="spectrum" data-row="' + i + '" data-field="effective" value="' + esc(row.effective) + '"></td>';
+        h += '<td class="ctr vmid"><input type="text" class="txt" data-kind="spectrum" data-row="' + i + '" data-field="expiry" value="' + esc(row.expiry) + '"></td>';
+        h += '<td class="ctr vmid"><button type="button" class="row-del-btn" data-del="spectrum" data-row="' + i + '" title="Remove row">×</button></td>';
+        h += '</tr>';
+      });
+      h += '</tbody></table></div>';
+      h += '<div class="toolbar-row no-print">' +
+           '<button type="button" class="row-add-btn" data-add="spectrum">+ Add spectrum row</button>' +
+           '</div>';
+      return h;
+    }
+
+    /* ============================================================
+       HTML BUILDERS — A : SUC Rate for GSM Access Spectrum
+       ============================================================ */
+    function mainRatesTableHTML() {
+      var rows = gsmAccessRows();
+      var h = '<div class="tbl-scroll"><table class="doc-table" id="mainRatesTable"><tbody>';
+      h += '<tr class="titlerow"><td colspan="9">A. SUC Rate for GSM Access Spectrum</td></tr>';
+      h += '<tr>';
+      h += '<th class="ctr">Auction Year</th>';
+      h += '<th class="ctr">Technology</th>';
+      h += '<th class="ctr">Frequency Band (MHz)</th>';
+      h += '<th class="ctr">Quantum of Spectrum (MHz)</th>';
+      h += '<th class="ctr">Quantum of Spectrum from 16.08.2016 (MHz)</th>';
+      h += '<th class="ctr">Q1</th>';
+      h += '<th class="ctr">Q2</th>';
+      h += '<th class="ctr">Q3</th>';
+      h += '<th class="ctr">Q4</th>';
+      h += '</tr>';
+
+      if (!rows.length) {
+        h += '<tr><td colspan="9" class="ctr empty-note">' +
+             'No GSM Access spectrum rows yet. Add rows in “Spectrum Holdings” and set Technology to ' +
+             'GSM Access, GSM Access (3G) or GSM Access (BWA).' +
+             '</td></tr>';
+      }
+
+      rows.forEach(function (o) {
+        var i = o.idx, row = o.row;
+        var q2016 = computeQuantum2016(row);
+        h += '<tr>';
+        h += '<td class="ctr vmid">' + (row.year ? esc(row.year) : '—') + '</td>';
+        h += '<td class="ctr vmid">' + (row.tech ? esc(row.tech) : '—') + '</td>';
+        h += '<td class="ctr vmid">' + (row.freqBand ? esc(row.freqBand) : '—') + '</td>';
+        h += '<td class="ctr vmid">' + (row.quantum ? esc(row.quantum) : '—') + '</td>';
+        h += '<td class="ctr vmid computed">' + (q2016 !== '' ? esc(q2016) : '—') + '</td>';
+        ['q1', 'q2', 'q3', 'q4'].forEach(function (f) {
+          h += '<td class="ctr vmid"><input type="text" class="rate-inp" data-kind="spectrumRates" data-row="' + i +
+               '" data-field="' + f + '" value="' + esc(row[f] || '') + '"></td>';
+        });
+        h += '</tr>';
+      });
+
+      h += '</tbody></table></div>';
+      return h;
+    }
+
+    /* ============================================================
+       HTML BUILDERS — B : Weighted Average of SUC Rate for the Quarter
+         Each part's SUC Rate is auto-computed from Table A, filtered by
+         whether the spectrum row was active during [part.from, part.to]:
+           ROUNDUP( Σ(Quantum2016 × Qn) / Σ(Quantum2016), 4 )
+         The Weighted Average is:
+           Σ(SUC Rate × days) / Σ(days)
+       ============================================================ */
+    function mainQuarterlyHTML() {
+      var h = '<div class="tbl-scroll"><table class="doc-table" id="mainQuarterlyTable"><tbody>';
+      h += '<tr class="titlerow"><td colspan="7">B. Weighted Average of SUC Rate for the Quarter — GSM Access Spectrum</td></tr>';
+      h += '<tr>';
+      h += '<th class="ctr" style="width:40px;"></th>';
+      h += '<th class="ctr" style="width:70px;">Quarter</th>';
+      h += '<th class="ctr">From</th>';
+      h += '<th class="ctr">To</th>';
+      h += '<th class="ctr" style="width:110px;">SUC Rate</th>';
+      h += '<th class="ctr" style="width:170px;">Weighted Average of SUC Rate for the Quarter</th>';
+      h += '<th class="ctr" style="width:40px;"></th>';
+      h += '</tr>';
+
+      state.mainQuarterly.forEach(function (row, i) {
+        var parts = quarterParts(row);
+        var n = parts.length;
+
+        /* Auto-computed weighted average for the whole quarter */
+        var weighted = getQuarterWeighted(row);
+        var weightedDisplay = weighted ? roundRatePct(weighted) : '';
+
+        parts.forEach(function (p, pi) {
+          h += '<tr>';
+          if (pi === 0) {
+            h += '<td class="q-ctrl" rowspan="' + n + '">' +
+                   '<div class="ctrl-stack">' +
+                     '<button type="button" class="ctrl-btn ctrl-split" data-split="' + i + '" title="Split this quarter into parts">⊞</button>' +
+                     (n > 1
+                        ? '<button type="button" class="ctrl-btn ctrl-merge" data-merge="' + i + '" title="Remove the split">−</button>'
+                        : '') +
+                   '</div>' +
+                 '</td>';
+
+            h += '<td class="ctr vmid merged" rowspan="' + n + '">' +
+                 '<input type="text" class="txt" data-kind="mainQuarterly" data-row="' + i +
+                 '" data-field="quarter" value="' + esc(row.quarter) + '"></td>';
+          }
+
+          h += '<td class="ctr vmid"><input type="date" class="txt" data-kind="mainQuarterly" data-row="' + i +
+               '" data-part="' + pi + '" data-field="from" value="' + esc(dmyToISO(p.from)) + '"></td>';
+          h += '<td class="ctr vmid"><input type="date" class="txt" data-kind="mainQuarterly" data-row="' + i +
+               '" data-part="' + pi + '" data-field="to" value="' + esc(dmyToISO(p.to)) + '"></td>';
+
+          /* SUC Rate is auto-computed when both from & to are present and i is 0..3 */
+          var autoRate = (i <= 3) ? computeAccessQuarterRate(i, p.from, p.to) : '';
+          var autoDisplay = autoRate !== '' ? roundRatePct(autoRate) : '';
+          var rateDisplay = autoDisplay !== '' ? autoDisplay : p.rate;
+          var rateReadonly = autoDisplay !== '' ? ' readonly' : '';
+
+          h += '<td class="ctr vmid"><input type="text" class="rate-inp" data-kind="mainQuarterly" data-row="' + i +
+               '" data-part="' + pi + '" data-field="rate" value="' + esc(rateDisplay) + '"' + rateReadonly + '></td>';
+
+          if (pi === 0) {
+            h += '<td class="ctr vmid merged" rowspan="' + n + '">' +
+                 '<input type="text" class="rate-inp" data-kind="mainQuarterly" data-row="' + i +
+                 '" data-field="weighted" value="' + esc(weightedDisplay) + '" readonly></td>';
+
+            h += '<td class="q-ctrl" rowspan="' + n + '">' +
+                   '<button type="button" class="ctrl-btn ctrl-remove" data-del="mainQuarterly" data-row="' + i + '" title="Remove this quarter">×</button>' +
+                 '</td>';
+          }
+          h += '</tr>';
+        });
+      });
+
+      h += '</tbody></table></div>';
+      h += '<div class="toolbar-row no-print">' +
+           '<button type="button" class="row-add-btn" data-add-quarter="' + (state.mainQuarterly.length - 1) + '">+ Add quarter at end</button>' +
+           '</div>';
+      h += '<div class="input-hint no-print"><b>SUC Rate</b> is auto-computed as <code>ROUNDUP(Σ(Quantum2016 × Qn) / Σ(Quantum2016), 4)</code> — only counting spectrum rows active during the period (Spectrum Effective Date ≤ To AND Spectrum Expiry Date ≥ From). <b>Weighted Average</b> = <code>ROUNDUP(Σ(SUC Rate × days) / Σ(days), 2)</code>. <b>⊞</b> splits the quarter; <b>−</b> removes the split; <b>×</b> removes the quarter.</div>';
+      h += '<div id="sucBreakdownHost">' + buildBreakdownHTML() + '</div>';
+      return h;
+    }
+
+    /* ============================================================
+       HTML BUILDERS — A : SUC Rate for Backbone Spectrum
+       ============================================================ */
+    function backboneRatesHTML() {
+      ensureBackboneTypeGroups();
+
+      var types = activeBackboneTypes();
+      var COLS = 7;
+
+      var h = '<div class="tbl-scroll"><table class="doc-table" id="mwaRatesTable"><tbody>';
+      h += '<tr class="titlerow"><td colspan="' + COLS + '">A. SUC Rate for Backbone Spectrum</td></tr>';
+
+      if (!types.length) {
+        h += '<tr><td colspan="' + COLS + '" class="ctr empty-note">' +
+             'Tick at least one of GSM MWA / GSM MWB / E-Band / Other in the sidebar to see its rate table.' +
+             '</td></tr>';
+        h += '</tbody></table></div>';
+        return h;
+      }
+
+      types.forEach(function (type, ti) {
+        h += '<tr class="type-header-row"><td colspan="' + COLS + '">' +
+               '<div class="type-row-flex">' +
+                 '<span>' + esc(type) + '</span>' +
+                 '<button type="button" class="row-add-btn type-add-btn" data-add-mwa-quarter="' + esc(type) + '">+ Add quarter at end</button>' +
+               '</div>' +
+             '</td></tr>';
+
+        h += '<tr>';
+        h += '<th class="ctr" style="width:40px;"></th>';
+        h += '<th class="ctr" style="width:70px;">Quarter</th>';
+        h += '<th class="ctr">From</th>';
+        h += '<th class="ctr">To</th>';
+        h += '<th class="ctr" style="width:110px;">SUC Rate</th>';
+        h += '<th class="ctr" style="width:170px;">Weighted Average of SUC Rate for the Quarter</th>';
+        h += '<th class="ctr" style="width:40px;"></th>';
+        h += '</tr>';
+
+        var arr = state.mwaQuarterly[type] || [];
+        arr.forEach(function (row, i) {
+          var parts = quarterParts(row);
+          var n = parts.length;
+
+          var weighted = getQuarterWeighted(row);
+          var weightedDisplay = weighted ? roundRatePct(weighted) : '';
+
+          parts.forEach(function (p, pi) {
+            h += '<tr>';
+            if (pi === 0) {
+              h += '<td class="q-ctrl" rowspan="' + n + '">' +
+                     '<div class="ctrl-stack">' +
+                       '<button type="button" class="ctrl-btn ctrl-split" data-split-mwa="' + i + '" data-mwa-type="' + esc(type) + '" title="Split this quarter into parts">⊞</button>' +
+                       (n > 1
+                          ? '<button type="button" class="ctrl-btn ctrl-merge" data-merge-mwa="' + i + '" data-mwa-type="' + esc(type) + '" title="Remove the split">−</button>'
+                          : '') +
+                     '</div>' +
+                   '</td>';
+              h += '<td class="ctr vmid merged" rowspan="' + n + '">' +
+                   '<input type="text" class="txt" data-kind="mwaQuarterly" data-type="' + esc(type) + '" data-row="' + i +
+                   '" data-field="quarter" value="' + esc(row.quarter) + '"></td>';
+            }
+            h += '<td class="ctr vmid"><input type="date" class="txt" data-kind="mwaQuarterly" data-type="' + esc(type) + '" data-row="' + i +
+                 '" data-part="' + pi + '" data-field="from" value="' + esc(dmyToISO(p.from)) + '"></td>';
+            h += '<td class="ctr vmid"><input type="date" class="txt" data-kind="mwaQuarterly" data-type="' + esc(type) + '" data-row="' + i +
+                 '" data-part="' + pi + '" data-field="to" value="' + esc(dmyToISO(p.to)) + '"></td>';
+            h += '<td class="ctr vmid"><input type="text" class="rate-inp" data-kind="mwaQuarterly" data-type="' + esc(type) + '" data-row="' + i +
+                 '" data-part="' + pi + '" data-field="rate" value="' + esc(p.rate) + '"></td>';
+            if (pi === 0) {
+              h += '<td class="ctr vmid merged" rowspan="' + n + '">' +
+                   '<input type="text" class="rate-inp" data-kind="mwaQuarterly" data-type="' + esc(type) + '" data-row="' + i +
+                   '" data-field="weighted" value="' + esc(weightedDisplay) + '" readonly></td>';
+              h += '<td class="q-ctrl" rowspan="' + n + '">' +
+                     '<button type="button" class="ctrl-btn ctrl-remove" data-del="mwaQuarterly" data-mwa-type="' + esc(type) + '" data-row="' + i + '" title="Remove this quarter">×</button>' +
+                   '</td>';
+            }
+            h += '</tr>';
+          });
+        });
+
+        if (ti < types.length - 1) {
+          h += '<tr class="type-header-row" style="height:8px;"><td colspan="' + COLS + '" style="padding:0; background:transparent; border-left:none; border-right:none;"></td></tr>';
+        }
+      });
+
+      h += '</tbody></table></div>';
+      h += '<div class="input-hint no-print">Each backbone spectrum type has its own row-block. <b>Weighted Average</b> = <code>ROUNDUP(Σ(SUC Rate × days) / Σ(days), 2)</code>. <b>⊞</b> splits a quarter; <b>−</b> removes the split; <b>×</b> removes the quarter.</div>';
+      return h;
+    }
+
+    /* ============================================================
+       HTML BUILDERS — Summary
+       ============================================================ */
+    function summaryTableHTML() {
+      var types    = activeBackboneTypes();
+      var quarters = state.mainQuarterly;
+
+      var h = '<div class="tbl-scroll"><table class="doc-table" id="summaryTable"><tbody>';
+      h += '<tr>';
+      h += '<th class="ctr">Quarter</th>';
+      h += '<th class="ctr">MAIN</th>';
+      types.forEach(function (t) {
+        h += '<th class="ctr">' + esc(t) + '</th>';
+      });
+      h += '</tr>';
+
+      quarters.forEach(function (q) {
+        h += '<tr>';
+
+        h += '<td class="ctr vmid lblcell">' + (q.quarter ? esc(q.quarter) : '—') + '</td>';
+
+        var mainVal = getQuarterWeighted(q);
+        h += '<td class="rate-cell">' + (mainVal ? esc(roundRatePct(mainVal)) : '—') + '</td>';
+
+        types.forEach(function (t) {
+          var arr = state.mwaQuarterly[t] || [];
+          var match = null;
+          for (var j = 0; j < arr.length; j++) {
+            if (arr[j] && arr[j].quarter === q.quarter) { match = arr[j]; break; }
+          }
+          var val = match ? getQuarterWeighted(match) : '';
+          h += '<td class="rate-cell">' + (val ? esc(roundRatePct(val)) : '—') + '</td>';
+        });
+
+        h += '</tr>';
+      });
+
+      h += '</tbody></table></div>';
+      return h;
+    }
+
+    /* ============================================================
+       FULL DOCUMENT
+       ============================================================ */
+    function docHTML() {
+      var h = '<div class="doc">';
+
+      h += '<h2 class="doc-title">Spectrum Details &amp; SUC Rate Calculation</h2>';
+
+      h += spectrumTableHTML();
+
+      h += '<div class="doc-banner">I. Calculation of SUC Rate for GSM Access Spectrum</div>';
+      h += mainRatesTableHTML();
+      h += mainQuarterlyHTML();
+
+      h += '<div class="doc-banner">II. Calculation of SUC Rate for GSM MWA/MWB Spectrum</div>';
+      h += backboneRatesHTML();
+
+      h += '<div class="doc-banner">III. SUMMARY OF SUC RATE CALCULATION</div>';
+      h += summaryTableHTML();
+
+      h += '<div class="doc-banner">Remarks</div>';
+      h += '<textarea class="remarks-box" id="remarksBox" placeholder="Enter any remarks or statutory notes here…">' + esc(state.remarks) + '</textarea>';
+
+      h += '</div>';
+      return h;
+    }
+
+    /* ============================================================
+       RENDER
+       ============================================================ */
+    function render() {
+      /* Sync auto-computed rates into state before rendering */
+      syncAutoRates();
+      document.getElementById('output').innerHTML = docHTML();
+      document.getElementById('asOnDisplay').textContent = state.asOn ? longDateStr(state.asOn) : '—';
+      syncSidebarCheckboxes();
+    }
+
+    function syncSidebarCheckboxes() {
+      var boxes = document.querySelectorAll('#inputCol [data-spec-flag]');
+      Array.prototype.forEach.call(boxes, function (cb) {
+        var flag = cb.getAttribute('data-spec-flag');
+        cb.checked = !!state.spectrumFlags[flag];
+      });
+    }
+
+    function rerenderPreservingFocus() {
+      var a = document.activeElement;
+      var sig = null, selStart = null, selEnd = null;
+      if (a && a.dataset && a.dataset.kind && a.dataset.field) {
+        sig = {
+          kind: a.dataset.kind,
+          row: a.dataset.row,
+          field: a.dataset.field,
+          part: a.dataset.part,
+          type: a.dataset.type
+        };
+        try { selStart = a.selectionStart; selEnd = a.selectionEnd; } catch (e) {}
+      }
+      collectState();
+      render();
+      saveState();
+      if (sig) {
+        var sel = '#output [data-kind="' + sig.kind + '"][data-row="' + sig.row + '"][data-field="' + sig.field + '"]' +
+                  (sig.part !== undefined ? '[data-part="' + sig.part + '"]' : '') +
+                  (sig.type !== undefined ? '[data-type="' + sig.type + '"]' : '');
+        var el = document.querySelector(sel);
+        if (el) {
+          el.focus();
+          if (selStart != null && el.setSelectionRange) {
+            try { el.setSelectionRange(selStart, selEnd); } catch (e) {}
+          }
+        }
+      }
+    }
+
+    /* Refresh derived cells (auto-computed SUC Rate, weighted averages,
+       summary III) in place, so the caret stays where it is. */
+    function refreshDerivedCells() {
+      /* Step 1: make sure state has latest user inputs */
+      collectState();
+
+      /* Step 2: update state.mainQuarterly parts with the latest auto-computed rates */
+      syncAutoRates();
+
+      /* Step 3: update DOM to reflect the freshly-computed values */
+
+      /* --- Table B: main quarterly --- */
+      var mainTbl = document.getElementById('mainQuarterlyTable');
+      if (mainTbl) {
+        state.mainQuarterly.forEach(function (row, i) {
+          var parts = quarterParts(row);
+          parts.forEach(function (part, pi) {
+            var inp = mainTbl.querySelector(
+              '[data-kind="mainQuarterly"][data-row="' + i + '"][data-part="' + pi + '"][data-field="rate"]'
+            );
+            if (!inp) return;
+            var autoRate = (i <= 3) ? computeAccessQuarterRate(i, part.from, part.to) : '';
+            if (autoRate !== '') {
+              var disp = roundRatePct(autoRate);
+              if (inp.value !== disp) inp.value = disp;
+              inp.readOnly = true;
+            } else {
+              inp.readOnly = false;
+            }
+          });
+
+          var weighted = getQuarterWeighted(row);
+          var weightedDisplay = weighted ? roundRatePct(weighted) : '';
+          var wInp = mainTbl.querySelector(
+            '[data-kind="mainQuarterly"][data-row="' + i + '"][data-field="weighted"]'
+          );
+          if (wInp) wInp.value = weightedDisplay;
+        });
+      }
+
+      var bdHost = document.getElementById('sucBreakdownHost');
+      if (bdHost) {
+        var wasOpen = bdHost.querySelector('details') && bdHost.querySelector('details').open;
+        bdHost.innerHTML = buildBreakdownHTML();
+        if (wasOpen) bdHost.querySelector('details').open = true;
+      }
+
+      /* --- Backbone tables: weighted fields --- */
+      var mwaTbl = document.getElementById('mwaRatesTable');
+      if (mwaTbl) {
+        Object.keys(state.mwaQuarterly || {}).forEach(function (type) {
+          var arr = state.mwaQuarterly[type] || [];
+          arr.forEach(function (row, i) {
+            var weighted = getQuarterWeighted(row);
+            var weightedDisplay = weighted ? roundRatePct(weighted) : '';
+            var wInp = mwaTbl.querySelector(
+              '[data-kind="mwaQuarterly"][data-type="' + type + '"][data-row="' + i + '"][data-field="weighted"]'
+            );
+            if (wInp) wInp.value = weightedDisplay;
+          });
+        });
+      }
+
+      /* --- Summary table --- */
+      var sumTbl = document.getElementById('summaryTable');
+      if (sumTbl) {
+        var types = activeBackboneTypes();
+        var tbody = sumTbl.querySelector('tbody');
+        if (tbody) {
+          var rows = tbody.querySelectorAll('tr');
+          state.mainQuarterly.forEach(function (q, qi) {
+            var srow = rows[qi];
+            if (!srow) return;
+            var cells = srow.querySelectorAll('td');
+            if (cells.length < 2 + types.length) return;
+
+            var mainVal = getQuarterWeighted(q);
+            cells[1].textContent = mainVal ? roundRatePct(mainVal) : '—';
+
+            types.forEach(function (t, ti) {
+              var arr = state.mwaQuarterly[t] || [];
+              var match = null;
+              for (var j = 0; j < arr.length; j++) {
+                if (arr[j] && arr[j].quarter === q.quarter) { match = arr[j]; break; }
+              }
+              var val = match ? getQuarterWeighted(match) : '';
+              cells[2 + ti].textContent = val ? roundRatePct(val) : '—';
+            });
+          });
+        }
+      }
+
+      /* Step 4: persist (state has been updated in steps 1 & 2) */
+      try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
+    }
+
+    /* ============================================================
+       READ INPUTS FROM DOM INTO STATE
+       ============================================================ */
+    function collectState() {
+      document.querySelectorAll('#output [data-kind][data-row][data-field]').forEach(function (el) {
+        var kind  = el.dataset.kind;
+        var row   = parseInt(el.dataset.row, 10);
+        var field = el.dataset.field;
+        var part  = (el.dataset.part !== undefined && el.dataset.part !== '')
+                    ? parseInt(el.dataset.part, 10) : -1;
+        var type  = el.dataset.type;
+
+        if (kind === 'spectrumRates') {
+          if (state.spectrum[row]) state.spectrum[row][field] = el.value;
+          return;
+        }
+
+        if (kind === 'mwaQuarterly') {
+          if (!type) return;
+          if (!state.mwaQuarterly[type]) state.mwaQuarterly[type] = [];
+          var arr = state.mwaQuarterly[type];
+          if (!arr[row]) arr[row] = blankQuarterlyRow('');
+          if (field === 'quarter') { arr[row].quarter = el.value; return; }
+          if (field === 'weighted') { arr[row].weighted = el.value; return; }
+          if (part < 0) return;
+          while (arr[row].parts.length <= part) arr[row].parts.push(blankQuarterPart('', '', '', false));
+          var pp = arr[row].parts[part];
+          if (field === 'from' || field === 'to') pp[field] = isoToDMY(el.value);
+          else if (field === 'rate') pp.rate = el.value;
+          return;
+        }
+
+        if (!state[kind] || !state[kind][row]) return;
+
+        if (part >= 0) {
+          var q = state[kind][row];
+          if (!q.parts) q.parts = [];
+          if (!q.parts[part]) q.parts[part] = blankQuarterPart('', '', '', false);
+          if (field === 'from' || field === 'to') {
+            q.parts[part][field] = isoToDMY(el.value);
+          } else {
+            q.parts[part][field] = el.value;
+          }
+          return;
+        }
+        state[kind][row][field] = el.value;
+      });
+
+      var rm = document.getElementById('remarksBox');
+      if (rm) state.remarks = rm.value;
+
+      var asOnEl = document.getElementById('asOnDate');
+      if (asOnEl && asOnEl.value) state.asOn = asOnEl.value;
+
+      var fyEl = document.getElementById('fyLabel');
+      if (fyEl) state.fyLabel = fyEl.value;
+
+      var licEl = document.getElementById('licenseeName');
+      if (licEl) state.licensee = licEl.value;
+    }
+
+    /* ============================================================
+       QUARTER NUMBERING
+       ============================================================ */
+    function renumberFrom(arrKey, from) {
+      var arr = state[arrKey];
+      if (!arr) return;
+      if (from < 0) from = 0;
+      if (from >= arr.length) return;
+
+      var base = 0;
+      if (from > 0) {
+        var prevLabel = String(arr[from - 1].quarter || '');
+        var m = prevLabel.match(/^Q\s*(\d+)$/i);
+        if (m) base = parseInt(m[1], 10);
+      }
+      for (var i = from; i < arr.length; i++) {
+        base++;
+        arr[i].quarter = 'Q' + base;
+      }
+    }
+    function handleQuarterLabelEdit(arrKey, i, newVal) {
+      var arr = state[arrKey];
+      var m = String(newVal).match(/^Q\s*(\d+)$/i);
+      if (!m) return;
+      var n = parseInt(m[1], 10);
+      for (var j = i + 1; j < arr.length; j++) {
+        n++;
+        arr[j].quarter = 'Q' + n;
+      }
+    }
+    function renumberTypeFrom(type, from) {
+      var arr = state.mwaQuarterly[type];
+      if (!arr) return;
+      if (from < 0) from = 0;
+      if (from >= arr.length) return;
+      var base = 0;
+      if (from > 0) {
+        var prev = String(arr[from - 1].quarter || '');
+        var m = prev.match(/^Q\s*(\d+)$/i);
+        if (m) base = parseInt(m[1], 10);
+      }
+      for (var i = from; i < arr.length; i++) {
+        base++;
+        arr[i].quarter = 'Q' + base;
+      }
+    }
+    function handleTypeQuarterLabelEdit(type, i, newVal) {
+      var arr = state.mwaQuarterly[type];
+      if (!arr) return;
+      var m = String(newVal).match(/^Q\s*(\d+)$/i);
+      if (!m) return;
+      var n = parseInt(m[1], 10);
+      for (var j = i + 1; j < arr.length; j++) {
+        n++;
+        arr[j].quarter = 'Q' + n;
+      }
+    }
+
+    /* ============================================================
+       ROW ADD / REMOVE / SPLIT / MERGE
+       ============================================================ */
+    function addRow(kind) {
+      collectState();
+      if (kind === 'spectrum') state.spectrum.push(blankSpectrumRow());
+      else if (kind === 'summary') state.summary.push(blankSummaryRow());
+      render();
+      saveState();
+    }
+
+    function removeRow(kind, idx) {
+      if (!confirm('Delete this row?')) return;
+      collectState();
+
+      if (kind === 'mainQuarterly') {
+        if (state.mainQuarterly.length > 1) {
+          state.mainQuarterly.splice(idx, 1);
+          renumberFrom(kind, idx);
+        } else {
+          state.mainQuarterly[0] = blankQuarterlyRow('Q1');
+        }
+        render();
+        saveState();
+        return;
+      }
+
+      if (state[kind] && state[kind].length > 1) {
+        state[kind].splice(idx, 1);
+      } else if (state[kind]) {
+        if (kind === 'spectrum') state.spectrum[0] = blankSpectrumRow();
+        else if (kind === 'summary') state.summary[0] = blankSummaryRow();
+      }
+      render();
+      saveState();
+    }
+
+    function splitQuarterIn(arrKey, idx) {
+      collectState();
+      var q = state[arrKey] && state[arrKey][idx];
+      if (!q) return;
+      var parts = quarterParts(q);
+
+      var firstFrom = parts[0].from || '';
+      var lastTo    = parts[parts.length - 1].to || '';
+
+      parts.push(blankQuarterPart('', '', '', false));
+      parts.forEach(function (p, i) {
+        p.from = (i === 0) ? firstFrom : '';
+        p.to   = (i === parts.length - 1) ? lastTo : '';
+        p.auto = false;
+      });
+
+      render();
+      saveState();
+    }
+    function mergeQuarterIn(arrKey, idx) {
+      collectState();
+      var q = state[arrKey] && state[arrKey][idx];
+      if (!q || !q.parts || q.parts.length < 2) return;
+
+      var firstFrom = q.parts[0].from || '';
+      var lastTo    = q.parts[q.parts.length - 1].to || '';
+      q.parts = [ blankQuarterPart(firstFrom, lastTo, q.parts[0].rate || '', false) ];
+
+      render();
+      saveState();
+    }
+    function addQuarterAtEndIn(arrKey) {
+      collectState();
+      var arr = state[arrKey];
+      if (!arr) return;
+      var pos = arr.length;
+      var newQ = blankQuarterlyRow('');
+      arr.push(newQ);
+
+      if (pos <= 3) {
+        var d = quarterDefaultDates(pos);
+        newQ.parts[0].from = d.from;
+        newQ.parts[0].to = d.to;
+        newQ.parts[0].auto = true;
+      }
+      renumberFrom(arrKey, pos);
+
+      render();
+      saveState();
+    }
+
+    function splitBackboneQuarter(type, idx) {
+      collectState();
+      var arr = state.mwaQuarterly[type];
+      if (!arr) return;
+      var q = arr[idx];
+      if (!q) return;
+      var parts = quarterParts(q);
+
+      var firstFrom = parts[0].from || '';
+      var lastTo    = parts[parts.length - 1].to || '';
+
+      parts.push(blankQuarterPart('', '', '', false));
+      parts.forEach(function (p, i) {
+        p.from = (i === 0) ? firstFrom : '';
+        p.to   = (i === parts.length - 1) ? lastTo : '';
+        p.auto = false;
+      });
+
+      render();
+      saveState();
+    }
+    function mergeBackboneQuarter(type, idx) {
+      collectState();
+      var arr = state.mwaQuarterly[type];
+      if (!arr) return;
+      var q = arr[idx];
+      if (!q || !q.parts || q.parts.length < 2) return;
+      var firstFrom = q.parts[0].from || '';
+      var lastTo    = q.parts[q.parts.length - 1].to || '';
+      q.parts = [ blankQuarterPart(firstFrom, lastTo, q.parts[0].rate || '', false) ];
+      render();
+      saveState();
+    }
+    function addBackboneQuarterAtEnd(type) {
+      collectState();
+      var arr = state.mwaQuarterly[type];
+      if (!arr) arr = state.mwaQuarterly[type] = [];
+      var pos = arr.length;
+      var newQ = blankQuarterlyRow('');
+      arr.push(newQ);
+
+      if (pos <= 3) {
+        var d = quarterDefaultDates(pos);
+        newQ.parts[0].from = d.from;
+        newQ.parts[0].to = d.to;
+        newQ.parts[0].auto = true;
+      }
+      renumberTypeFrom(type, pos);
+
+      render();
+      saveState();
+    }
+    function removeBackboneQuarter(type, idx) {
+      if (!confirm('Delete this quarter?')) return;
+      collectState();
+      var arr = state.mwaQuarterly[type];
+      if (!arr) return;
+      if (arr.length > 1) {
+        arr.splice(idx, 1);
+        renumberTypeFrom(type, idx);
+      } else {
+        arr[0] = blankQuarterlyRow('Q1');
+      }
+      render();
+      saveState();
+    }
+
+    /* ============================================================
+       PASTE-AS-GRID
+       ============================================================ */
+    function blankRowFor(kind) {
+      if (kind === 'spectrum') return blankSpectrumRow();
+      if (kind === 'mainQuarterly') return blankQuarterlyRow('');
+      if (kind === 'summary') return blankSummaryRow();
+      return null;
+    }
+    function targetRow(kind, idx) {
+      if (kind === 'spectrumRates') return state.spectrum[idx];
+      return state[kind] ? state[kind][idx] : null;
+    }
+    function onPaste(e) {
+      var inp = e.target;
+      if (!inp || inp.tagName !== 'INPUT') return;
+      if (!inp.dataset || !inp.dataset.kind) return;
+
+      var raw = '';
+      if (e.clipboardData || window.clipboardData) {
+        raw = (e.clipboardData || window.clipboardData).getData('text/plain');
+      }
+      if (!raw) return;
+
+      var lines = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n+$/, '').split('\n');
+      var matrix = lines.map(function (l) { return l.split('\t'); });
+      var isSingle = matrix.length === 1 && matrix[0].length === 1;
+
+      var kind  = inp.dataset.kind;
+      var r0    = parseInt(inp.dataset.row, 10);
+      var field = inp.dataset.field;
+      var type  = inp.dataset.type;
+
+      if (kind === 'mainQuarterly' || kind === 'mwaQuarterly') {
+        if (isSingle) {
+          var v = matrix[0][0];
+          if (/%/.test(v) || /[\d]/.test(v)) {
+            var hasPct = /%/.test(v);
+            var n = cleanNumStr(v);
+            if (n !== '') {
+              e.preventDefault();
+              inp.value = hasPct ? (n + '%') : v.trim();
+              collectState();
+              saveState();
+              return;
+            }
+          }
+          return;
+        }
+        e.preventDefault();
+        return;
+      }
+
+      var fieldOrder = {
+        spectrum:      ['freqBand', 'tech', 'year', 'quantum', 'shared', 'effective', 'expiry'],
+        spectrumRates: ['q1', 'q2', 'q3', 'q4'],
+        summary:       ['quarter', 'main', 'mwa']
+      }[kind];
+      if (!fieldOrder) return;
+      var c0 = fieldOrder.indexOf(field);
+      if (c0 < 0) return;
+
+      if (isSingle) {
+        var v1 = matrix[0][0];
+        if (/%/.test(v1) || /[\d]/.test(v1)) {
+          var hasPct1 = /%/.test(v1);
+          var n1 = cleanNumStr(v1);
+          if (n1 !== '') {
+            e.preventDefault();
+            inp.value = hasPct1 ? (n1 + '%') : v1.trim();
+            collectState();
+            saveState();
+            return;
+          }
+        }
+        return;
+      }
+
+      e.preventDefault();
+
+      if (kind !== 'spectrumRates') {
+        var needed = r0 + matrix.length;
+        while (state[kind] && state[kind].length < needed) {
+          var blank = blankRowFor(kind);
+          if (!blank) break;
+          state[kind].push(blank);
+        }
+      }
+
+      matrix.forEach(function (row, dr) {
+        row.forEach(function (val, dc) {
+          var fr = r0 + dr;
+          var fc = c0 + dc;
+          var target = targetRow(kind, fr);
+          if (!target) return;
+          var fld = fieldOrder[fc];
+          if (!fld) return;
+          var v = val.trim();
+          if (v && !/%/.test(v)) v = cleanNumStr(v);
+          target[fld] = v;
+        });
+      });
+
+      render();
+      saveState();
+    }
+
+    /* ============================================================
+       PERSISTENCE
+       ============================================================ */
+    function saveState() {
+      try {
+        collectState();
+        localStorage.setItem(STORE_KEY, JSON.stringify(state));
+      } catch (e) { /* ignore */ }
+    }
+    function loadState() {
+      try {
+        var raw = localStorage.getItem(STORE_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) { return null; }
+    }
+
+    /* ============================================================
+       PRINT SHEET
+       ============================================================ */
+    function buildPrintSheet() {
+      var ps = document.getElementById('printSheet');
+      if (!ps) return;
+
+      collectState();
+      ensureBackboneTypeGroups();
+      syncAutoRates();
+
+      var html = '';
+      html += '<div class="ps-header">' +
+        '<div class="ps-left">' +
+        '<div class="ps-eyebrow">SUC Assessment</div>' +
+        '<h1 class="ps-title">Spectrum Details &amp; SUC Rate Calculation</h1>' +
+        '</div>' +
+        '<div class="ps-right">' +
+        'Rate schedule as on<b>' + (state.asOn ? longDateStr(state.asOn) : '—') + '</b>' +
+        ((state.licensee || state.fyLabel)
+          ? esc((state.licensee || '') + (state.fyLabel ? (state.licensee ? ' — ' : '') + 'FY ' + state.fyLabel : ''))
+          : '') +
+        '</div>' +
+        '</div>';
+
+      html += '<div class="ps-block">';
+      html += '<div class="ps-block-title">' + esc(spectrumHeadingText()) + '</div>';
+      html += '<table class="ps-table"><thead><tr>';
+      html += '<th style="width:5%;">Sl No</th>';
+      html += '<th style="width:11%;">Frequency Band</th>';
+      html += '<th style="width:12%;">Technology</th>';
+      html += '<th style="width:12%;">Admin Allotment / Auction Year</th>';
+      html += '<th style="width:12%;">Quantum of Spectrum</th>';
+      html += '<th style="width:8%;">Is Shared</th>';
+      html += '<th style="width:13%;">Spectrum Effective Date</th>';
+      html += '<th style="width:13%;">Spectrum Expiry Date</th>';
+      html += '</tr></thead><tbody>';
+      state.spectrum.forEach(function (row, i) {
+        html += '<tr>';
+        html += '<td>' + (i + 1) + '</td>';
+        html += '<td>' + (row.freqBand ? esc(row.freqBand) : '—') + '</td>';
+        html += '<td>' + (row.tech ? esc(row.tech) : '—') + '</td>';
+        html += '<td>' + (row.year ? esc(row.year) : '—') + '</td>';
+        html += '<td class="num">' + (row.quantum ? esc(row.quantum) : '—') + '</td>';
+        html += '<td>' + (row.shared ? esc(row.shared) : '—') + '</td>';
+        html += '<td>' + (row.effective ? esc(row.effective) : '—') + '</td>';
+        html += '<td>' + (row.expiry ? esc(row.expiry) : '—') + '</td>';
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      html += '</div>';
+
+      html += '<div class="ps-banner">I. SUC Rate for GSM Access Spectrum</div>';
+      html += '<div class="ps-block">';
+      html += '<div class="ps-block-title">I-1. Spectrum Details &amp; Quarterly SUC Rate</div>';
+      html += '<table class="ps-table"><thead><tr>';
+      html += '<th style="width:9%;">Auction Year</th>';
+      html += '<th style="width:12%;">Technology</th>';
+      html += '<th style="width:10%;">Frequency Band (MHz)</th>';
+      html += '<th style="width:11%;">Quantum of Spectrum (MHz)</th>';
+      html += '<th style="width:14%;">Quantum from 16.08.2016 (MHz)</th>';
+      html += '<th style="width:11%;">Q1</th>';
+      html += '<th style="width:11%;">Q2</th>';
+      html += '<th style="width:11%;">Q3</th>';
+      html += '<th style="width:11%;">Q4</th>';
+      html += '</tr></thead><tbody>';
+      var accessRows = gsmAccessRows();
+      if (!accessRows.length) {
+        html += '<tr><td colspan="9">No GSM Access spectrum rows.</td></tr>';
+      }
+      accessRows.forEach(function (o) {
+        var row = o.row;
+        var q2016 = computeQuantum2016(row);
+        html += '<tr>';
+        html += '<td>' + (row.year ? esc(row.year) : '—') + '</td>';
+        html += '<td>' + (row.tech ? esc(row.tech) : '—') + '</td>';
+        html += '<td>' + (row.freqBand ? esc(row.freqBand) : '—') + '</td>';
+        html += '<td class="num">' + (row.quantum ? esc(row.quantum) : '—') + '</td>';
+        html += '<td class="num">' + (q2016 !== '' ? esc(q2016) : '—') + '</td>';
+        html += '<td class="num">' + (row.q1 ? esc(row.q1) : '—') + '</td>';
+        html += '<td class="num">' + (row.q2 ? esc(row.q2) : '—') + '</td>';
+        html += '<td class="num">' + (row.q3 ? esc(row.q3) : '—') + '</td>';
+        html += '<td class="num">' + (row.q4 ? esc(row.q4) : '—') + '</td>';
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      html += '</div>';
+
+      html += '<div class="ps-block">';
+      html += '<div class="ps-block-title">I-2. Weighted Average of SUC Rate for the Quarter — GSM Access Spectrum</div>';
+      html += '<table class="ps-table"><thead><tr>';
+      html += '<th style="width:8%;">Quarter</th>';
+      html += '<th style="width:17%;">From</th>';
+      html += '<th style="width:17%;">To</th>';
+      html += '<th style="width:14%;">SUC Rate</th>';
+      html += '<th style="width:24%;">Weighted Average of SUC Rate for the Quarter</th>';
+      html += '</tr></thead><tbody>';
+      state.mainQuarterly.forEach(function (row, ri) {
+        var parts = quarterParts(row);
+        var n = parts.length;
+        var weighted = getQuarterWeighted(row);
+        var weightedDisplay = weighted ? roundRatePct(weighted) : '';
+        parts.forEach(function (p, pi) {
+          html += '<tr>';
+          if (pi === 0) html += '<td rowspan="' + n + '">' + (row.quarter ? esc(row.quarter) : '—') + '</td>';
+          html += '<td>' + (p.from ? esc(p.from) : '—') + '</td>';
+          html += '<td>' + (p.to ? esc(p.to) : '—') + '</td>';
+          var autoRate = (ri <= 3) ? computeAccessQuarterRate(ri, p.from, p.to) : '';
+          var rateShown = (autoRate !== '') ? roundRatePct(autoRate) : p.rate;
+          html += '<td class="num">' + (rateShown ? esc(rateShown) : '—') + '</td>';
+          if (pi === 0) html += '<td rowspan="' + n + '" class="num">' + (weightedDisplay ? esc(weightedDisplay) : '—') + '</td>';
+          html += '</tr>';
+        });
+      });
+      html += '</tbody></table>';
+      html += '</div>';
+
+      var typeCols = activeBackboneTypes();
+      html += '<div class="ps-banner">II. SUC Rate for GSM MWA/MWB Spectrum</div>';
+      html += '<div class="ps-block">';
+      html += '<div class="ps-block-title">II-1. A. SUC Rate for Backbone Spectrum</div>';
+
+      if (!typeCols.length) {
+        html += '<table class="ps-table"><tbody><tr><td>No backbone spectrum types ticked.</td></tr></tbody></table>';
+      } else {
+        html += '<table class="ps-table"><thead><tr>';
+        html += '<th style="width:8%;">Quarter</th>';
+        html += '<th style="width:17%;">From</th>';
+        html += '<th style="width:17%;">To</th>';
+        html += '<th style="width:14%;">SUC Rate</th>';
+        html += '<th style="width:24%;">Weighted Average of SUC Rate for the Quarter</th>';
+        html += '</tr></thead><tbody>';
+        typeCols.forEach(function (t) {
+          html += '<tr class="ps-typeheader"><td colspan="5">' + esc(t) + '</td></tr>';
+          var arr = state.mwaQuarterly[t] || [];
+          arr.forEach(function (row) {
+            var parts = quarterParts(row);
+            var n = parts.length;
+            var weighted = getQuarterWeighted(row);
+            var weightedDisplay = weighted ? roundRatePct(weighted) : '';
+            parts.forEach(function (p, pi) {
+              html += '<tr>';
+              if (pi === 0) html += '<td rowspan="' + n + '">' + (row.quarter ? esc(row.quarter) : '—') + '</td>';
+              html += '<td>' + (p.from ? esc(p.from) : '—') + '</td>';
+              html += '<td>' + (p.to ? esc(p.to) : '—') + '</td>';
+              html += '<td class="num">' + (p.rate ? esc(p.rate) : '—') + '</td>';
+              if (pi === 0) html += '<td rowspan="' + n + '" class="num">' + (weightedDisplay ? esc(weightedDisplay) : '—') + '</td>';
+              html += '</tr>';
+            });
+          });
+        });
+        html += '</tbody></table>';
+      }
+      html += '</div>';
+
+      html += '<div class="ps-banner">III. SUMMARY OF SUC RATE CALCULATION</div>';
+      html += '<div class="ps-block">';
+      html += '<table class="ps-table"><thead><tr>';
+      html += '<th>Quarter</th>';
+      html += '<th>MAIN</th>';
+      typeCols.forEach(function (t) {
+        html += '<th>' + esc(t) + '</th>';
+      });
+      html += '</tr></thead><tbody>';
+      state.mainQuarterly.forEach(function (q) {
+        html += '<tr>';
+        html += '<td>' + (q.quarter ? esc(q.quarter) : '—') + '</td>';
+        var mainVal = getQuarterWeighted(q);
+        html += '<td class="num">' + (mainVal ? esc(roundRatePct(mainVal)) : '—') + '</td>';
+        typeCols.forEach(function (t) {
+          var arr = state.mwaQuarterly[t] || [];
+          var match = null;
+          for (var j = 0; j < arr.length; j++) {
+            if (arr[j] && arr[j].quarter === q.quarter) { match = arr[j]; break; }
+          }
+          var val = match ? getQuarterWeighted(match) : '';
+          html += '<td class="num">' + (val ? esc(roundRatePct(val)) : '—') + '</td>';
+        });
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      html += '</div>';
+
+      if (state.remarks && state.remarks.trim()) {
+        html += '<div class="ps-banner">Remarks</div>';
+        html += '<div class="ps-block" style="font-size:7.5pt; white-space:pre-wrap;">' + esc(state.remarks) + '</div>';
+      }
+
+      html += '<div class="ps-footer">Generated ' + fmtDate(new Date()) + ' — Spectrum Details &amp; SUC Rate Calculation</div>';
+      ps.innerHTML = html;
+    }
+
+    /* ============================================================
+       EXCEL EXPORT
+       ============================================================ */
+    function exportExcel() {
+      collectState();
+      ensureBackboneTypeGroups();
+      syncAutoRates();
+
+      if (typeof XLSX === 'undefined') {
+        alert('The Excel library could not be loaded (offline?). Please check your connection and try again.');
+        return;
+      }
+
+      var grid = [];
+      function set(r, c, v) {
+        while (grid.length <= r) grid.push([]);
+        var row = grid[r];
+        while (row.length <= c) row.push(null);
+        row[c] = v;
+      }
+
+      var r = 0;
+      set(r, 0, 'SPECTRUM DETAILS & SUC RATE CALCULATION'); r += 2;
+
+      set(r, 0, spectrumHeadingText()); r++;
+      ['Sl No', 'Frequency Band', 'Technology', 'Admin Allotment / Auction Year',
+       'Quantum of Spectrum', 'Is Shared', 'Spectrum Effective Date', 'Spectrum Expiry Date']
+        .forEach(function (h, i) { set(r, i, h); });
+      r++;
+      state.spectrum.forEach(function (row, i) {
+        set(r, 0, i + 1);
+        set(r, 1, row.freqBand);
+        set(r, 2, row.tech);
+        set(r, 3, row.year);
+        set(r, 4, row.quantum);
+        set(r, 5, row.shared);
+        set(r, 6, row.effective);
+        set(r, 7, row.expiry);
+        r++;
+      });
+      r += 2;
+
+      set(r, 0, 'A. SUC Rate for GSM Access Spectrum'); r++;
+      ['Auction Year', 'Technology', 'Frequency Band (MHz)',
+       'Quantum of Spectrum (MHz)', 'Quantum from 16.08.2016 (MHz)',
+       'Q1', 'Q2', 'Q3', 'Q4'].forEach(function (h, i) { set(r, i, h); });
+      r++;
+      gsmAccessRows().forEach(function (o) {
+        var row = o.row;
+        set(r, 0, row.year);
+        set(r, 1, row.tech);
+        set(r, 2, row.freqBand);
+        set(r, 3, row.quantum);
+        set(r, 4, computeQuantum2016(row));
+        set(r, 5, row.q1);
+        set(r, 6, row.q2);
+        set(r, 7, row.q3);
+        set(r, 8, row.q4);
+        r++;
+      });
+      r += 2;
+
+      set(r, 0, 'Weighted Average of SUC Rate for the Quarter — GSM Access Spectrum'); r++;
+      ['Quarter', 'From', 'To', 'SUC Rate', 'Weighted Average'].forEach(function (h, i) { set(r, i, h); });
+      r++;
+      state.mainQuarterly.forEach(function (row, ri) {
+        var parts = quarterParts(row);
+        var weighted = getQuarterWeighted(row);
+        parts.forEach(function (p, pi) {
+          set(r, 0, pi === 0 ? row.quarter : '');
+          set(r, 1, p.from || '');
+          set(r, 2, p.to || '');
+          var autoRate = (ri <= 3) ? computeAccessQuarterRate(ri, p.from, p.to) : '';
+          var rateShown = (autoRate !== '') ? roundRateNum(autoRate) : (p.rate || '');
+          set(r, 3, rateShown);
+          set(r, 4, pi === 0 ? (weighted ? roundRateNum(weighted) : '') : '');
+          r++;
+        });
+      });
+      r += 2;
+
+      set(r, 0, 'II. SUC Rate for GSM MWA/MWB Spectrum'); r++;
+      set(r, 0, 'A. SUC Rate for Backbone Spectrum'); r++;
+      var typeCols = activeBackboneTypes();
+
+      typeCols.forEach(function (t) {
+        set(r, 0, t); r++;
+        ['Quarter', 'From', 'To', 'SUC Rate', 'Weighted Average'].forEach(function (h, i) { set(r, i, h); });
+        r++;
+        var arr = state.mwaQuarterly[t] || [];
+        arr.forEach(function (row) {
+          var parts = quarterParts(row);
+          var weighted = getQuarterWeighted(row);
+          parts.forEach(function (p, pi) {
+            set(r, 0, pi === 0 ? row.quarter : '');
+            set(r, 1, p.from || '');
+            set(r, 2, p.to || '');
+            set(r, 3, p.rate || '');
+            set(r, 4, pi === 0 ? (weighted ? roundRateNum(weighted) : '') : '');
+            r++;
+          });
+        });
+        r++;
+      });
+      r += 1;
+
+      set(r, 0, 'III. SUMMARY OF SUC RATE CALCULATION'); r++;
+      var sumHdr = ['Quarter', 'MAIN'].concat(typeCols);
+      sumHdr.forEach(function (h, i) { set(r, i, h); });
+      r++;
+      state.mainQuarterly.forEach(function (q) {
+        set(r, 0, q.quarter || '');
+        var mainVal = getQuarterWeighted(q);
+        set(r, 1, mainVal ? roundRateNum(mainVal) : '');
+        typeCols.forEach(function (t, ti) {
+          var arr = state.mwaQuarterly[t] || [];
+          var match = null;
+          for (var j = 0; j < arr.length; j++) {
+            if (arr[j] && arr[j].quarter === q.quarter) { match = arr[j]; break; }
+          }
+          var val = match ? getQuarterWeighted(match) : '';
+          set(r, 2 + ti, val ? roundRateNum(val) : '');
+        });
+        r++;
+      });
+      r += 2;
+
+      set(r, 0, 'Remarks'); r++;
+      if (state.remarks) {
+        state.remarks.split('\n').forEach(function (line) {
+          set(r, 0, line);
+          r++;
+        });
+      }
+
+      var ws = XLSX.utils.aoa_to_sheet(grid);
+      ws['!cols'] = [
+        { wch: 22 }, { wch: 18 }, { wch: 18 }, { wch: 22 },
+        { wch: 22 }, { wch: 12 }, { wch: 22 }, { wch: 22 },
+        { wch: 14 }
+      ];
+
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Spectrum & SUC Rate');
+      var buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      var blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'Spectrum_Details_SUC_Rate.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1500);
+    }
+
+    /* ============================================================
+       SIDEBAR COLLAPSE
+       ============================================================ */
+    function setupSidebar() {
+      var toggle = document.getElementById('sidebarToggle');
+      var chev = toggle.querySelector('.chev');
+      var label = toggle.querySelector('.label');
+      function apply(collapsed) {
+        document.body.classList.toggle('sidebar-collapsed', collapsed);
+        toggle.setAttribute('aria-expanded', String(!collapsed));
+        chev.textContent = collapsed ? '›' : '‹';
+        label.textContent = collapsed ? 'Inputs' : 'Hide inputs';
+        try { localStorage.setItem(SIDEBAR_KEY, collapsed ? '1' : '0'); } catch (e) {}
+      }
+      var saved = false;
+      try { saved = localStorage.getItem(SIDEBAR_KEY) === '1'; } catch (e) {}
+      apply(saved);
+      toggle.addEventListener('click', function () {
+        apply(!document.body.classList.contains('sidebar-collapsed'));
+      });
+      window.__applySidebarState = apply;
+    }
+
+    /* ============================================================
+       COLLAPSIBLE PANELS
+       ============================================================ */
+    function setupCollapsiblePanels() {
+      var panels = [].slice.call(document.querySelectorAll('#inputCol .panel'));
+      panels.forEach(function (panel) {
+        var h2 = panel.querySelector('h2');
+        if (!h2) return;
+        var body = document.createElement('div');
+        body.className = 'panel-body';
+        var kids = [].slice.call(panel.childNodes);
+        var startIdx = kids.indexOf(h2) + 1;
+        kids.slice(startIdx).forEach(function (nd) { body.appendChild(nd); });
+        panel.appendChild(body);
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'panel-toggle';
+        btn.setAttribute('aria-expanded', 'true');
+        btn.title = 'Collapse / expand';
+        btn.innerHTML = '<span class="chev">▾</span>';
+        btn.addEventListener('click', function () {
+          panel.classList.toggle('collapsed');
+          var collapsed = panel.classList.contains('collapsed');
+          btn.setAttribute('aria-expanded', String(!collapsed));
+          btn.querySelector('.chev').textContent = collapsed ? '▸' : '▾';
+          savePanelState();
+        });
+        h2.appendChild(btn);
+      });
+      try {
+        var raw = localStorage.getItem(PANEL_KEY);
+        if (raw) {
+          var states = JSON.parse(raw);
+          panels.forEach(function (panel, i) {
+            if (!states[i]) return;
+            panel.classList.add('collapsed');
+            var btn = panel.querySelector('.panel-toggle');
+            if (btn) {
+              btn.setAttribute('aria-expanded', 'false');
+              var ch = btn.querySelector('.chev');
+              if (ch) ch.textContent = '▸';
+            }
+          });
+        }
+      } catch (e) {}
+    }
+    function savePanelState() {
+      try {
+        var states = [].slice.call(document.querySelectorAll('#inputCol .panel'))
+          .map(function (p) { return p.classList.contains('collapsed'); });
+        localStorage.setItem(PANEL_KEY, JSON.stringify(states));
+      } catch (e) {}
+    }
+
+    /* ============================================================
+       FRESH START / CLEAR
+       ============================================================ */
+    function freshStart() {
+      if (!confirm('Delete all saved data in this browser and start with a blank form?')) return;
+      try {
+        localStorage.removeItem(STORE_KEY);
+        localStorage.removeItem(PANEL_KEY);
+        localStorage.removeItem(SIDEBAR_KEY);
+      } catch (e) {}
+      state = blankState();
+      state.asOn = toInputVal(new Date());
+      document.getElementById('asOnDate').value = state.asOn;
+      document.getElementById('licenseeName').value = '';
+      document.getElementById('fyLabel').value = '';
+      document.querySelectorAll('#inputCol .panel').forEach(function (p) {
+        p.classList.remove('collapsed');
+        var btn = p.querySelector('.panel-toggle');
+        if (btn) {
+          btn.setAttribute('aria-expanded', 'true');
+          var ch = btn.querySelector('.chev');
+          if (ch) ch.textContent = '▾';
+        }
+      });
+      if (window.__applySidebarState) window.__applySidebarState(false);
+      ensureBackboneTypeGroups();
+      render();
+      saveState();
+    }
+
+    function clearValues() {
+      if (!confirm('Clear all entered values? Row structure is kept.')) return;
+      collectState();
+      var fresh = blankState();
+      fresh.asOn = state.asOn;
+      fresh.fyLabel = state.fyLabel;
+      fresh.licensee = state.licensee;
+      fresh.spectrumFlags = Object.assign({}, state.spectrumFlags);
+      fresh.spectrum = state.spectrum.map(function () { return blankSpectrumRow(); });
+      fresh.mainQuarterly = state.mainQuarterly.map(function (r, i) {
+        var q = blankQuarterlyRow(r.quarter || ('Q' + (i + 1)));
+        if (i <= 3) {
+          var d = quarterDefaultDates(i);
+          q.parts[0].from = d.from;
+          q.parts[0].to = d.to;
+          q.parts[0].auto = true;
+        }
+        return q;
+      });
+      fresh.mwaQuarterly = {};
+      Object.keys(state.mwaQuarterly || {}).forEach(function (t) {
+        if (!fresh.spectrumFlags[t]) return;
+        fresh.mwaQuarterly[t] = state.mwaQuarterly[t].map(function (r, i) {
+          var q = blankQuarterlyRow(r.quarter || ('Q' + (i + 1)));
+          if (i <= 3) {
+            var d = quarterDefaultDates(i);
+            q.parts[0].from = d.from;
+            q.parts[0].to = d.to;
+            q.parts[0].auto = true;
+          }
+          return q;
+        });
+      });
+      fresh.summary = state.summary.map(function (r) { return { quarter: r.quarter, main: '', mwa: '' }; });
+      state = fresh;
+      ensureBackboneTypeGroups();
+      render();
+      saveState();
+    }
+
+    /* ============================================================
+       INIT
+       ============================================================ */
+    function init() {
+      setupSidebar();
+      setupCollapsiblePanels();
+
+      var saved = loadState();
+      state = normalizeState(saved || blankState());
+      if (!state.asOn) state.asOn = toInputVal(new Date());
+      document.getElementById('asOnDate').value = state.asOn;
+      document.getElementById('licenseeName').value = state.licensee || '';
+      document.getElementById('fyLabel').value = state.fyLabel || '';
+
+      ensureBackboneTypeGroups();
+
+      var out = document.getElementById('output');
+      out.addEventListener('paste', onPaste);
+
+      out.addEventListener('input', function (e) {
+        var t = e.target;
+        if (!t || !t.dataset) return;
+
+        if (t.dataset.kind === 'mainQuarterly' &&
+            (t.dataset.field === 'from' || t.dataset.field === 'to')) {
+          var ri = parseInt(t.dataset.row, 10);
+          var pi = parseInt(t.dataset.part, 10);
+          var q  = state.mainQuarterly[ri];
+          if (q && q.parts && q.parts[pi]) q.parts[pi].auto = false;
+        }
+        if (t.dataset.kind === 'mwaQuarterly' &&
+            (t.dataset.field === 'from' || t.dataset.field === 'to')) {
+          var mtype = t.dataset.type;
+          var mri = parseInt(t.dataset.row, 10);
+          var mpi = parseInt(t.dataset.part, 10);
+          var arr = state.mwaQuarterly[mtype];
+          if (arr && arr[mri] && arr[mri].parts && arr[mri].parts[mpi]) {
+            arr[mri].parts[mpi].auto = false;
+          }
+        }
+
+        if (t.dataset.field === 'quarter' && t.dataset.kind === 'mainQuarterly') {
+          var qi = parseInt(t.dataset.row, 10);
+          state.mainQuarterly[qi].quarter = t.value;
+          handleQuarterLabelEdit('mainQuarterly', qi, t.value);
+          var selStart = null;
+          try { selStart = t.selectionStart; } catch (err) {}
+          render();
+          var el = document.querySelector('#output [data-kind="mainQuarterly"][data-row="' + qi + '"][data-field="quarter"]');
+          if (el) {
+            el.focus();
+            if (selStart != null && el.setSelectionRange) {
+              try { el.setSelectionRange(selStart, selStart); } catch (err) {}
+            }
+          }
+          saveState();
+          return;
+        }
+        if (t.dataset.field === 'quarter' && t.dataset.kind === 'mwaQuarterly' && t.dataset.type) {
+          var qtype = t.dataset.type;
+          var mqi = parseInt(t.dataset.row, 10);
+          var marr = state.mwaQuarterly[qtype];
+          if (marr && marr[mqi]) marr[mqi].quarter = t.value;
+          handleTypeQuarterLabelEdit(qtype, mqi, t.value);
+          var mselStart = null;
+          try { mselStart = t.selectionStart; } catch (err) {}
+          render();
+          var mel = document.querySelector('#output [data-kind="mwaQuarterly"][data-type="' + qtype + '"][data-row="' + mqi + '"][data-field="quarter"]');
+          if (mel) {
+            mel.focus();
+            if (mselStart != null && mel.setSelectionRange) {
+              try { mel.setSelectionRange(mselStart, mselStart); } catch (err) {}
+            }
+          }
+          saveState();
+          return;
+        }
+
+        if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA') debouncedSave();
+      });
+
+      out.addEventListener('change', function (e) {
+        var t = e.target;
+        if (!t || !t.dataset) return;
+
+        if ((t.dataset.kind === 'mainQuarterly' || t.dataset.kind === 'mwaQuarterly') &&
+            (t.dataset.field === 'from' || t.dataset.field === 'to')) {
+          /* Dates changed → recompute derived cells in place */
+          refreshDerivedCells();
+          return;
+        }
+
+        if (t.dataset.kind === 'spectrum') {
+          /* Table 1 changed → recompute derived cells, then re-render (to refresh
+             the SUC Rate auto-computation and orange highlighting). */
+          collectState();
+          refreshDerivedCells();
+          rerenderPreservingFocus();
+          return;
+        }
+        if (t.tagName === 'SELECT' || t.type === 'checkbox') {
+          debouncedSave();
+        }
+      });
+
+      /* On leaving a rate field: format and, if it's a Table A Q value,
+         refresh the derived cells (Table B rate, weighted averages, summary). */
+      out.addEventListener('focusout', function (e) {
+        var t = e.target;
+        if (!t || !isRateField(t)) return;
+        if (t.readOnly) return;
+
+        var v = String(t.value || '').trim();
+        if (v) {
+          var formatted = roundRatePct(v);
+          if (t.value !== formatted) t.value = formatted;
+          collectState();
+          saveState();
+        }
+
+        if (t.dataset.kind === 'spectrumRates') {
+          refreshDerivedCells();
+        }
+      });
+
+      out.addEventListener('click', function (e) {
+        var addBtn = e.target.closest('[data-add]');
+        if (addBtn) { addRow(addBtn.getAttribute('data-add')); return; }
+
+        var addQBtn = e.target.closest('[data-add-quarter]');
+        if (addQBtn) { addQuarterAtEndIn('mainQuarterly'); return; }
+
+        var splitBtn = e.target.closest('[data-split]');
+        if (splitBtn) { splitQuarterIn('mainQuarterly', parseInt(splitBtn.getAttribute('data-split'), 10)); return; }
+
+        var mergeBtn = e.target.closest('[data-merge]');
+        if (mergeBtn) { mergeQuarterIn('mainQuarterly', parseInt(mergeBtn.getAttribute('data-merge'), 10)); return; }
+
+        var splitMwaBtn = e.target.closest('[data-split-mwa]');
+        if (splitMwaBtn) {
+          splitBackboneQuarter(
+            splitMwaBtn.getAttribute('data-mwa-type'),
+            parseInt(splitMwaBtn.getAttribute('data-split-mwa'), 10)
+          );
+          return;
+        }
+        var mergeMwaBtn = e.target.closest('[data-merge-mwa]');
+        if (mergeMwaBtn) {
+          mergeBackboneQuarter(
+            mergeMwaBtn.getAttribute('data-mwa-type'),
+            parseInt(mergeMwaBtn.getAttribute('data-merge-mwa'), 10)
+          );
+          return;
+        }
+        var addMwaQBtn = e.target.closest('[data-add-mwa-quarter]');
+        if (addMwaQBtn) {
+          addBackboneQuarterAtEnd(addMwaQBtn.getAttribute('data-add-mwa-quarter'));
+          return;
+        }
+
+        var delBtn = e.target.closest('[data-del]');
+        if (delBtn) {
+          var dk = delBtn.getAttribute('data-del');
+          var di = parseInt(delBtn.getAttribute('data-row'), 10);
+          var dt = delBtn.getAttribute('data-mwa-type');
+          if (dk === 'mwaQuarterly' && dt) {
+            removeBackboneQuarter(dt, di);
+          } else {
+            removeRow(dk, di);
+          }
+        }
+      });
+
+      var inputCol = document.getElementById('inputCol');
+      inputCol.addEventListener('change', function (e) {
+        var t = e.target;
+        if (!t || !t.dataset || !t.dataset.specFlag) return;
+        state.spectrumFlags[t.dataset.specFlag] = !!t.checked;
+        ensureBackboneTypeGroups();
+        render();
+        saveState();
+      });
+
+      document.getElementById('asOnDate').addEventListener('change', function () {
+        collectState();
+        document.getElementById('asOnDisplay').textContent = state.asOn ? longDateStr(state.asOn) : '—';
+        render();
+        saveState();
+      });
+
+      document.getElementById('licenseeName').addEventListener('input', function () {
+        state.licensee = this.value;
+        updateHeading();
+        debouncedSave();
+      });
+
+      document.getElementById('fyLabel').addEventListener('input', function () {
+        state.fyLabel = this.value;
+        updateHeading();
+        refreshAutoDates();
+        render();
+        debouncedSave();
+      });
+
+      document.getElementById('calcBtn').addEventListener('click', function () {
+        collectState();
+        render();
+        saveState();
+      });
+      document.getElementById('clearBtn').addEventListener('click', clearValues);
+      document.getElementById('printBtn').addEventListener('click', function () {
+        buildPrintSheet();
+        window.print();
+      });
+      window.addEventListener('beforeprint', buildPrintSheet);
+      document.getElementById('xlsxBtn').addEventListener('click', exportExcel);
+      document.getElementById('freshStartBtn').addEventListener('click', freshStart);
+      document.getElementById('exampleBtn').addEventListener('click', function () {
+        if (!confirm('Load the reference example data? Current values will be replaced.')) return;
+        state = exampleState();
+        document.getElementById('asOnDate').value = state.asOn;
+        document.getElementById('licenseeName').value = state.licensee;
+        document.getElementById('fyLabel').value = state.fyLabel;
+        ensureBackboneTypeGroups();
+        render();
+        saveState();
+      });
+
+      refreshAutoDates();
+      render();
+    }
+
+    function updateHeading() {
+      var el = document.getElementById('spectrumHeading');
+      if (el) el.textContent = spectrumHeadingText();
+    }
+
+    var saveTimer = null;
+    function debouncedSave() {
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(function () {
+        saveTimer = null;
+        saveState();
+      }, 300);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+
+  })();
+  </script>
+</body>
+</html>
